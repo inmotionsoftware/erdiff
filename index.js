@@ -4,14 +4,17 @@ const fs = require('fs')
 const path = require('path')
 const process = require('process')
 const deepEqual = require('deep-equal')
+const diff = require('diff')
 const { graphviz } = require('node-graphviz')
 const mysql = require('mysql2/promise')
 const {Command, flags} = require('@oclif/command')
 
-async function generateErd (connection, query) {
-  const [data] = await connection.query(query)
+async function generateErd (connection, tablesQuery, sprocQuery) {
+  const [tableData] = await connection.query(tablesQuery)
+  const [sprocData] = await connection.query(sprocQuery)
   const tables = {}
-  data.forEach(row => {
+  const sprocs = {}
+  tableData.forEach(row => {
     const name = `${row.schema}.${row.table}`
     if (!tables.hasOwnProperty(name)) {
       tables[name] = {
@@ -39,7 +42,13 @@ async function generateErd (connection, query) {
     }
     tables[name].columns.push(col)
   })
-  return tables
+  sprocData.forEach(row => {
+    const name = `${row.schema}.${row.name}`
+    if (!sprocs.hasOwnProperty(name)) {
+      sprocs[name] = row
+    }
+  })
+  return {tables, sprocs}
 }
 
 function colDiff(current, previous) {
@@ -67,7 +76,30 @@ function colDiff(current, previous) {
   return ret
 }
 
-function diff(current, previous) {
+function sprocDiff(current, previous) {
+  const c_sprocs = Object.keys(current)
+  const p_sprocs = Object.keys(previous)
+  // removed
+  const r_sprocs = p_sprocs.filter(sproc => !c_sprocs.includes(sproc))
+  // added
+  const a_sprocs = c_sprocs.filter(sproc => !p_sprocs.includes(sproc))
+  // sprocs in both (same)
+  const s_sprocs = c_sprocs.filter(sproc => p_sprocs.includes(sproc))
+  // unchanged sprocs
+  const u_sprocs = s_sprocs.filter(sproc => deepEqual(current[sproc],previous[sproc]))
+  // modified sprocs
+  const m_sprocs = s_sprocs.filter(sproc => !u_sprocs.includes(sproc))
+  m_sprocs.forEach(sproc => {
+    current[sproc].change = 'modified'
+    current[sproc].diff = diff.diffLines(current[sproc].body, previous[sproc].body)
+  })
+  r_sprocs.forEach(sproc => current[sproc] = {change: 'removed', ...(previous[sproc])})
+  a_sprocs.forEach(sproc => current[sproc].change = 'added')
+  u_sprocs.forEach(sproc => current[sproc].change = 'unchanged')
+  return current
+}
+
+function schemaDiff(current, previous) {
   const c_tables = Object.keys(current)
   const p_tables = Object.keys(previous)
   const c_contents = c_tables.reduce((p,c) => ({...p, ...Object.fromEntries([[c,JSON.stringify(current[c])]])}), {})
@@ -139,7 +171,7 @@ ${table.columns.map((col) => row(table.schema,table.name,col)).join('\n')}
     model="circuit";
     mode="sgd";
     overlap="vpsc"; //false, compress, ...
-    sep="+40";
+    sep="+60";
   ];
   node [shape = plaintext];
   legend [
@@ -171,11 +203,13 @@ generate Entity Relationship Diagram
 `
   async run() {
     const {flags} = this.parse(ERD)
-    let schemas = ''
+    let tableSchemas = ''
+    let sprocSchemas = ''
     if (flags?.schema?.length) {
-      schemas = flags.schema.map(s => `c.TABLE_SCHEMA = '${s}'`).join(' OR ')
+      tableSchemas = flags.schema.map(s => `c.TABLE_SCHEMA = '${s}'`).join(' OR ')
+      sprocSchemas = flags.schema.map(s => `ROUTINE_SCHEMA = '${s}'`).join(' OR ')
     }
-    const query = `
+    const tablesQuery = `
 SELECT
     c.TABLE_SCHEMA as \`schema\`,
     c.TABLE_NAME as \`table\`,
@@ -196,8 +230,20 @@ SELECT
     LEFT JOIN information_schema.KEY_COLUMN_USAGE AS n ON (c.TABLE_SCHEMA=n.TABLE_SCHEMA AND c.TABLE_NAME = n.TABLE_NAME AND c.COLUMN_NAME = n.COLUMN_NAME AND n.REFERENCED_TABLE_SCHEMA IS NOT NULL)
     LEFT JOIN information_schema.KEY_COLUMN_USAGE AS pk ON (c.TABLE_SCHEMA=pk.TABLE_SCHEMA AND c.TABLE_NAME = pk.TABLE_NAME AND c.COLUMN_NAME = pk.COLUMN_NAME AND pk.CONSTRAINT_NAME = 'PRIMARY')
   WHERE
-    (${schemas})
+    (${tableSchemas})
   ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, c.ORDINAL_POSITION
+;`
+    const sprocQuery = `
+SELECT
+    ROUTINE_SCHEMA AS \`schema\`,
+    ROUTINE_NAME AS name,
+    ROUTINE_TYPE AS type,
+    ROUTINE_DEFINITION AS body
+  FROM 
+    information_schema.ROUTINES
+  WHERE
+    ROUTINE_BODY='SQL' AND
+    (${sprocSchemas})
 ;`
     let connection
     let erd
@@ -207,7 +253,7 @@ SELECT
       } catch (err) {
         this.error('uh oh! error connecting to mysql url', {exit: 2})
       }
-      erd = await generateErd(connection, query)
+      erd = await generateErd(connection, tablesQuery, sprocQuery)
       connection.close()
     } else {
       try {
@@ -223,7 +269,7 @@ SELECT
       } catch (err) {
         this.error('uh oh! error connecting to previous mysql url', {exit: 2})
       }
-      previous = await generateErd(connection, query)
+      previous = await generateErd(connection, tablesQuery, sprocQuery)
       connection.close()
     } else if (flags.previous) {
       try {
@@ -233,12 +279,13 @@ SELECT
       }
     }
     if (flags.save) {
-      fs.writeFileSync(flags.save, JSON.stringify(erd))
+      fs.writeFileSync(flags.save, JSON.stringify(erd.sprocs))
     }
     if (previous) {
-      diff(erd, previous)
+      schemaDiff(erd.tables, previous.tables)
+      sprocDiff(erd.sprocs, previous.sprocs)
     }
-    const g = graph(erd)
+    const g = graph(erd.tables)
     if (flags.dot) {
       fs.writeFileSync(flags.dot, g)
     }
@@ -266,6 +313,7 @@ ERD.flags = {
   }),
   quiet: flags.boolean({
     char: 'q',
+    env: 'QUIET',
     default: false,
     description: 'do not output svg to stdout'
   }),
@@ -277,6 +325,7 @@ ERD.flags = {
   }),
   save: flags.string({
     char: 'f',
+    env: 'SAVE_SCHEMA',
     description: 'save schema data for diffing later'
   }),
   dot: flags.string({
