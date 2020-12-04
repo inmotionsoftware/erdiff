@@ -2,16 +2,26 @@ console.log('hi')
 // some code from https://github.com/talos/jquery-svgpan/blob/master/jquery-svgpan.js
 let sprocList
 let svgEl
+let szp
 window.onload = () => {
   const view = document.querySelector('#view')
+  const tables = document.querySelector('#tables')
   const sprocChange = document.querySelector('#sprocChange')
   svgEl = document.querySelector('#svg svg')
+  szp = svgPanZoom(svgEl)
+  resetZoom()
   view.onchange = changeView
   sprocChange.onchange = sprocChangeFn
+  tables.onchange = tableChange
   sprocList = document.querySelectorAll('#sprocList li')
   for (const el of sprocList) {
     el.onclick = showSproc
   }
+}
+
+function resetZoom() {
+  szp.fit()
+  szp.center()
 }
 
 function changeView (evt) {
@@ -19,6 +29,21 @@ function changeView (evt) {
   for (const el of content.children) {
     el.classList.toggle('hidden')
   }
+  const tables = document.querySelector('#tables')
+  tables.classList.toggle('hidden')
+}
+
+function tableChange (evt) {
+  const t = Array.from(document.querySelectorAll('title')).filter(el => el.textContent==evt.target.value.replace('.','_'))
+  const table = t[0].parentNode
+  const bb=table.getBBox()
+    , vbb=szp.getSizes().viewBox
+    , x=vbb.width/2-bb.x-bb.width/2
+    , y=vbb.height/2-bb.y-bb.height/2
+    , rz=szp.getSizes().realZoom
+    , zoom=vbb.width/bb.width
+  console.log(`szp.panBy({x:${x*rz},y:${y*rz}})`)
+  //szp.zoom(zoom)
 }
 
 function sprocChangeFn (evt) {

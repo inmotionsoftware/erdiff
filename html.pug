@@ -7,6 +7,8 @@ html
     script
       include page.js
     script
+      include svg-pan-zoom.min.js
+    script
       | var erd=!{erd}
   body
     h1 Schema diff for #{schemas}
@@ -14,11 +16,14 @@ html
       select#view
         option(value="svg") Schemas
         option(value="diffs") Stored Procedures
-      select#tables
+      select(id="tables" class="")
         each v, table in tables
           option(value=table) #{table}
     div(id="content" class="block")
-      div(id="svg" style="max-height: 80vh; overflow: hidden") !{svg}
+      div(id="svg") 
+        div(class="block" style="margin: 0.5rem;")
+          a(class='show-code' href='#' onclick='javascript: resetZoom()') Reset View
+        div(id='svg-container' class='block') !{svg}
       div(id="diffs" class="block hidden")
         div(class="left block") 
           h2 Stored Procedures

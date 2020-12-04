@@ -12,6 +12,8 @@
 .left { width: 30%; padding-right: 0.5rem;}
 .right { width: 70%; border-left: 1px solid black; padding-left: 1rem;}
 
+#svg-container { height: 80vh; }
+
 ul { 
   padding-inline-start: 0;
 }
