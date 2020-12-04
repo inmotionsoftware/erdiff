@@ -9,7 +9,8 @@
     "deep-equal": "^2.0.4",
     "diff": "^5.0.0",
     "mysql2": "^2.2.5",
-    "node-graphviz": "^0.1.0"
+    "node-graphviz": "^0.1.0",
+    "pug": "^3.0.0"
   },
   "files": [
     "index.js"

@@ -8,6 +8,9 @@ const diff = require('diff')
 const { graphviz } = require('node-graphviz')
 const mysql = require('mysql2/promise')
 const {Command, flags} = require('@oclif/command')
+const pug = require('pug')
+
+const htmlTemplate = pug.compileFile('html.pug')
 
 async function generateErd (connection, tablesQuery, sprocQuery) {
   const [tableData] = await connection.query(tablesQuery)
@@ -46,6 +49,8 @@ async function generateErd (connection, tablesQuery, sprocQuery) {
     const name = `${row.schema}.${row.name}`
     if (!sprocs.hasOwnProperty(name)) {
       sprocs[name] = row
+      sprocs[name].body = `CREATE ${row.security == 'DEFINER' ? row.security : ''} ${row.security == 'DEFINER' ? `= '${row.def}'` : ''} ${row.type} ${row.name} (${row.params}) ${row.comment && `COMMENT '${row.comment}'`} ${row.access}
+${row.body}`
     }
   })
   return {tables, sprocs}
@@ -91,7 +96,7 @@ function sprocDiff(current, previous) {
   const m_sprocs = s_sprocs.filter(sproc => !u_sprocs.includes(sproc))
   m_sprocs.forEach(sproc => {
     current[sproc].change = 'modified'
-    current[sproc].diff = diff.diffLines(current[sproc].body, previous[sproc].body)
+    current[sproc].diff = diff.diffLines(previous[sproc].body, current[sproc].body)
   })
   r_sprocs.forEach(sproc => current[sproc] = {change: 'removed', ...(previous[sproc])})
   a_sprocs.forEach(sproc => current[sproc].change = 'added')
@@ -164,14 +169,15 @@ ${table.columns.map((col) => row(table.schema,table.name,col)).join('\n')}
   graph [
     rankdir="LR"
     splines="curved"
-    pack=true
-    concentrate=true
+    // pack=true
+    // concentrate=true
     ratio="auto"
     layout=neato;
-    model="circuit";
-    mode="sgd";
-    overlap="vpsc"; //false, compress, ...
-    sep="+60";
+    // model="circuit";
+    // mode="sgd";
+    // overlap="vpsc"; //false, compress, ...
+    overlap="scalexy"; //false, compress, ...
+    // sep="+60";
   ];
   node [shape = plaintext];
   legend [
@@ -238,9 +244,14 @@ SELECT
     ROUTINE_SCHEMA AS \`schema\`,
     ROUTINE_NAME AS name,
     ROUTINE_TYPE AS type,
-    ROUTINE_DEFINITION AS body
+    ROUTINE_DEFINITION AS body,
+    SECURITY_TYPE AS security,
+    DEFINER AS def,
+    SQL_DATA_ACCESS AS access,
+    ROUTINE_COMMENT AS comment,
+    (SELECT GROUP_CONCAT('', CONCAT_WS(' ',PARAMETER_MODE,PARAMETER_NAME,DATA_TYPE) SEPARATOR ', ') FROM information_schema.PARAMETERS AS p WHERE (r.\`ROUTINE_SCHEMA\`=p.SPECIFIC_SCHEMA AND r.\`ROUTINE_NAME\` = p.\`SPECIFIC_NAME\`) ORDER BY p.ORDINAL_POSITION ASC) AS params
   FROM 
-    information_schema.ROUTINES
+    information_schema.ROUTINES AS r
   WHERE
     ROUTINE_BODY='SQL' AND
     (${sprocSchemas})
@@ -279,7 +290,7 @@ SELECT
       }
     }
     if (flags.save) {
-      fs.writeFileSync(flags.save, JSON.stringify(erd.sprocs))
+      fs.writeFileSync(flags.save, JSON.stringify(erd))
     }
     if (previous) {
       schemaDiff(erd.tables, previous.tables)
@@ -290,9 +301,26 @@ SELECT
       fs.writeFileSync(flags.dot, g)
     }
 
-    var out = await graphviz.layout(g,'svg','neato','-n2')
+    let svg
     if (!flags.quiet) {
-      console.log(out)
+      svg = await graphviz.layout(g,'svg','neato','-n2')
+      //console.log(svg)
+      svg = svg.replace(/svg width="[^"]*" height="[^"]*"/, 'svg width="100vw" height="100vh"')
+      svg = svg.replace('<?xml version="1.0" encoding="UTF-8" standalone="no"?>', '')
+      svg = svg.replace(`<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">`, '')
+      svg = svg.replace(/<!--.*-->/, '')
+      //console.log(svg)
+      const sList = flags.schema ? flags.schema.join(', ') :
+        Object.keys(Object.keys(erd.tables).map(n => erd.tables[n]).reduce((p,c) =>({...p, ...Object.fromEntries([[c.schema, 1]])}),{})).join(', ')
+      const html = htmlTemplate({
+        tables: erd.tables,
+        schemas: sList,
+        sprocs: erd.sprocs,
+        erd: JSON.stringify(erd),
+        svg
+      })
+      console.log(html)
     }
     //console.log(erd["telematics.translationmaintenanceschedule"])
   }
