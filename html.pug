@@ -1,0 +1,38 @@
+doctype html
+html
+  head
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    style
+      include style.css
+    script
+      include page.js
+    script
+      | var erd=!{erd}
+  body
+    h1 Schema diff for #{schemas}
+    div 
+      select#view
+        option(value="svg") Schemas
+        option(value="diffs") Stored Procedures
+      select#tables
+        each v, table in tables
+          option(value=table) #{table}
+    div(id="content" class="block")
+      div(id="svg" style="max-height: 80vh; overflow: hidden") !{svg}
+      div(id="diffs" class="block hidden")
+        div(class="left block") 
+          h2 Stored Procedures
+          select#sprocChange
+            each v in ["ALL", "added", "removed", "modified"]
+              option(value=v selected=v==="ALL") #{v}
+          ul#sprocList
+            each v, sproc in sprocs
+              li(id=sproc class="li-" + v.change)
+                span.name #{sproc}
+                span(class="status " + v.change) #{v.change}
+        div(class="right block")
+          a(class='show-code' href='#' onclick='javascript: code("all")') Show All
+          a(class='show-code' href='#' onclick='javascript: code("removed")') Hide Removed
+          a(class='show-code' href='#' onclick='javascript: code("added")') Hide Added
+        div(id='diff' class="right block")
+      

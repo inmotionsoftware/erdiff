@@ -147,10 +147,10 @@ function graph(schema) {
   const lineStyle = ref =>
     ref.ref_change == 'added' || ref.added || ref.a ? 'style="bold"; color="green"' : ref.ref_change == 'removed' ||
       ref.removed || ref.r ? 'style="dashed"; color="red"' : ''
-  const keys = col => col.pk?'PK':col.key=='UNI'?'U':'&nbsp; &nbsp;'
-  const row = (s,t,col) => `      <TR PORT="P${idxOf(s,t,col.name)}"><TD PORT="T${idxOf(s,t,col.name)}">${keys(col)}</TD><TD${color(col)} CELLPADDING="5" ALIGN="LEFT" ><B>${col.name}</B>&nbsp;</TD><TD PORT="H${idxOf(s,t,col.name)}">${col.type}${col.length&&col.length<30000?`(${col.length})`:''}</TD></TR>`
+  const keys = col => col.pk?'PK':col.key=='UNI'?'U':'Z_Z nbsp; Z_Z nbsp;'
+  const row = (s,t,col) => `      <TR PORT="P${idxOf(s,t,col.name)}"><TD PORT="T${idxOf(s,t,col.name)}">${keys(col)}</TD><TD${color(col)} CELLPADDING="5" ALIGN="LEFT" ><B>${col.name}</B>Z_Z nbsp;</TD><TD PORT="H${idxOf(s,t,col.name)}">${col.type}${col.length&&col.length<30000?`(${col.length})`:''}</TD></TR>`
   const label = (table) => `<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3">
-      <TR><TD${color(table)} COLSPAN="3"><FONT POINT-SIZE="20">${table.type=='VIEW'?'&#x1F52D;':'&#x1F4D8;'} ${table.schema} ${table.name}</FONT> &nbsp;</TD></TR>
+      <TR><TD${color(table)} COLSPAN="3"><FONT POINT-SIZE="20">${table.type=='VIEW'?'Z_Z #x1F52D;':'Z_Z #x1F4D8;'} ${table.schema} ${table.name}</FONT> Z_Z nbsp;</TD></TR>
 ${table.columns.map((col) => row(table.schema,table.name,col)).join('\n')}
     </TABLE>>`
   const node = (table) => `  ${table.schema}_${table.name} [
@@ -185,8 +185,8 @@ ${table.columns.map((col) => row(table.schema,table.name,col)).join('\n')}
     penwidth = "6";
     label=<<TABLE BGCOLOR="white" BORDER="0" CELLBORDER="1" CELLSPACING="0">
         <TR><TD COLSPAN="2"><FONT POINT-SIZE="20">Legend</FONT></TD></TR>
-        <TR><TD>&#x1F52D;</TD><TD>VIEW</TD></TR>
-        <TR><TD>&#x1F4D8;</TD><TD>TABLE</TD></TR>
+        <TR><TD>Z_Z #x1F52D;</TD><TD>VIEW</TD></TR>
+        <TR><TD>Z_Z #x1F4D8;</TD><TD>TABLE</TD></TR>
         <TR><TD COLSPAN="2" BGCOLOR="lightgreen">Added column or table</TD></TR>
         <TR><TD COLSPAN="2" BGCOLOR="lightpink">Removed column or table</TD></TR>
         <TR><TD>PK</TD><TD>Primary key</TD></TR>
@@ -305,11 +305,12 @@ SELECT
     if (!flags.quiet) {
       svg = await graphviz.layout(g,'svg','neato','-n2')
       //console.log(svg)
-      svg = svg.replace(/svg width="[^"]*" height="[^"]*"/, 'svg width="100vw" height="100vh"')
+      svg = svg.replace(/svg width="[^"]*" height="[^"]*"/, 'svg width="100%" height="100%"')
       svg = svg.replace('<?xml version="1.0" encoding="UTF-8" standalone="no"?>', '')
       svg = svg.replace(`<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">`, '')
       svg = svg.replace(/<!--.*-->/, '')
+      svg = svg.replace(/Z_Z /g, '&')
       //console.log(svg)
       const sList = flags.schema ? flags.schema.join(', ') :
         Object.keys(Object.keys(erd.tables).map(n => erd.tables[n]).reduce((p,c) =>({...p, ...Object.fromEntries([[c.schema, 1]])}),{})).join(', ')
