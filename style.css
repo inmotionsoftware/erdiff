@@ -14,9 +14,7 @@
 
 #svg-container { height: 80vh; }
 
-ul { 
-  padding-inline-start: 0;
-}
+ul {  padding-inline-start: 0; }
 li { list-style-type: none; clear: both;}
 
 pre { margin: 0; }

@@ -136,6 +136,11 @@ ansi-styles@^4.0.0:
   dependencies:
     color-convert "^2.0.1"
 
+antlr4@^4.9.0:
+  version "4.9.0"
+  resolved "https://registry.yarnpkg.com/antlr4/-/antlr4-4.9.0.tgz#ee779d69acc702f5d836d5d02a51c7798f44e523"
+  integrity sha512-TAS2RfNblx/wlfy/h0YNaBSC1sg5rQ4Twm0h/ksCoWRAsLo9Freh367zXtRZdKVYSOLkOJbPDJL6TFclCr0Xvw==
+
 array-filter@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/array-filter/-/array-filter-1.0.0.tgz#baf79e62e6ef4c2a4c0b831232daffec251f9d83"

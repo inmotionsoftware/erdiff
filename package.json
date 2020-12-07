@@ -1,11 +1,12 @@
 {
-  "name": "erd",
+  "name": "erdiff",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT",
+  "license": "BSD",
   "dependencies": {
     "@oclif/command": "^1.8.0",
     "@oclif/errors": "^1.3.4",
+    "antlr4": "^4.9.0",
     "deep-equal": "^2.0.4",
     "diff": "^5.0.0",
     "mysql2": "^2.2.5",

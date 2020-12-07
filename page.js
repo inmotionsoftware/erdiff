@@ -3,13 +3,17 @@ console.log('hi')
 let sprocList
 let svgEl
 let szp
+let cbb
+let selectedTable
 window.onload = () => {
   const view = document.querySelector('#view')
   const tables = document.querySelector('#tables')
   const sprocChange = document.querySelector('#sprocChange')
   svgEl = document.querySelector('#svg svg')
   szp = svgPanZoom(svgEl)
+  szp.setMaxZoom(50)
   resetZoom()
+  setTimeout(()=> cbb=szp.getSizes(),300)
   view.onchange = changeView
   sprocChange.onchange = sprocChangeFn
   tables.onchange = tableChange
@@ -35,14 +39,16 @@ function changeView (evt) {
 
 function tableChange (evt) {
   const t = Array.from(document.querySelectorAll('title')).filter(el => el.textContent==evt.target.value.replace('.','_'))
-  const table = t[0].parentNode
-  const bb=table.getBBox()
+  if (selectedTable) selectedTable.style.outline = null
+  selectedTable = t[0].parentNode
+  selectedTable.style.outline = "8px solid blue"
+  const bb=selectedTable.getBBox()
     , vbb=szp.getSizes().viewBox
     , x=vbb.width/2-bb.x-bb.width/2
     , y=vbb.height/2-bb.y-bb.height/2
     , rz=szp.getSizes().realZoom
     , zoom=vbb.width/bb.width
-  console.log(`szp.panBy({x:${x*rz},y:${y*rz}})`)
+  //szp.panBy({x:x*rz,y:y*rz})
   //szp.zoom(zoom)
 }
 
