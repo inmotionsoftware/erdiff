@@ -1,30 +1,24 @@
 const mysql = require('mysql2/promise')
 
-function MySqlProcessor() {}
-
-MySqlProcessor.prototype.createConnection = async (connectionSettings) => {
+const createConnection = async (connectionString) => {
   let connection
   try {
-    connection = await mysql.createConnection(connectionSettings)
+    connection = await mysql.createConnection(connectionString)
   } catch (err) {
     this.error('uh oh! error connecting to mysql url', {exit: 2})
   } 
   return connection
 }
 
-MySqlProcessor.prototype.closeConnection = async (connection) => {
-  connection.close()
-}
-
-MySqlProcessor.prototype.getTableSchemas = async (schema) => {
+const getTableSchemas = (schema) => {
   return schema.map(s => `c.TABLE_SCHEMA = '${s}'`).join(' OR ')
 }
 
-MySqlProcessor.prototype.getRoutineSchemas = async (schema) => {
+const getRoutineSchemas = (schema) => {
   return schema.map(s => `ROUTINE_SCHEMA = '${s}'`).join(' OR ')
 }
 
-MySqlProcessor.prototype.getTableQuery = async (tableSchemas) => {
+const getTableQuery = (tableSchemas) => {
   return `
     SELECT
         c.TABLE_SCHEMA as \`schema\`,
@@ -50,7 +44,7 @@ MySqlProcessor.prototype.getTableQuery = async (tableSchemas) => {
     ;`
 }
 
-MySqlProcessor.prototype.getRoutineQuery = async (sprocSchemas) => {
+const getRoutineQuery = (sprocSchemas) => {
   return `
     SELECT
         ROUTINE_SCHEMA AS \`schema\`,
@@ -70,48 +64,62 @@ MySqlProcessor.prototype.getRoutineQuery = async (sprocSchemas) => {
     ;`
 }
 
-MySqlProcessor.prototype.generateErd = async (connection, tablesQuery, sprocQuery) => {
-  const [tableData] = await connection.query(tablesQuery);
-  const [sprocData] = await connection.query(sprocQuery);
-  const tables = {};
-  const sprocs = {};
-  tableData.forEach(row => {
-    const name = `${row.schema}.${row.table}`;
-    if (!tables.hasOwnProperty(name)) {
-      tables[name] = {
-        columns: [],
-        schema: row.schema,
-        name: row.table,
-        type: row.table_type,
-        view_tables: row.view_tables
-      };
-    }
-    const col = {
-      name: row.column,
-      type: row.type,
-      length: row.length,
-      position: row.ordinal,
-      key: row.ckey,
-      pk: !!row.pk
-    };
-    if (row.ref_table) {
-      col.ref = {
-        schema: row.ref_schema,
-        table: row.ref_table,
-        column: row.ref_column
-      };
-    }
-    tables[name].columns.push(col);
-  });
-  sprocData.forEach(row => {
-    const name = `${row.schema}.${row.name}`;
-    if (!sprocs.hasOwnProperty(name)) {
-      sprocs[name] = row;
-      sprocs[name].body = `CREATE ${row.security == 'DEFINER' ? row.security : ''} ${row.security == 'DEFINER' ? `= '${row.def}'` : ''} ${row.type} ${row.name} (${row.params}) ${row.comment && `COMMENT '${row.comment}'`} ${row.access}
-${row.body}`;
-    }
-  });
-  return { tables, sprocs };
-}
+exports.MySqlProcessor = {
+  generateErd: async (connectionString, schema) => {
+    const connection = await createConnection(connectionString)
 
-exports.MySqlProcessor = MySqlProcessor;
+    if (schema.length) {
+      tableSchemas = getTableSchemas(schema)
+      sprocSchemas = getRoutineSchemas(schema)
+    }
+    
+    const tablesQuery = getTableQuery(tableSchemas)
+    const sprocQuery = getRoutineQuery(sprocSchemas)
+
+    const [tableData] = connection.query(tablesQuery)
+    const [sprocData] = connection.query(sprocQuery)
+    const tables = {}
+    const sprocs = {}
+
+    tableData.forEach(row => {
+      const name = `${row.schema}.${row.table}`
+      if (!tables.hasOwnProperty(name)) {
+        tables[name] = {
+          columns: [],
+          schema: row.schema,
+          name: row.table,
+          type: row.table_type,
+          view_tables: row.view_tables
+        }
+      }
+      const col = {
+        name: row.column,
+        type: row.type,
+        length: row.length,
+        position: row.ordinal,
+        key: row.ckey,
+        pk: !!row.pk
+      }
+      if (row.ref_table) {
+        col.ref = {
+          schema: row.ref_schema,
+          table: row.ref_table,
+          column: row.ref_column
+        }
+      }
+      tables[name].columns.push(col)
+    })
+
+    sprocData.forEach(row => {
+      const name = `${row.schema}.${row.name}`
+      if (!sprocs.hasOwnProperty(name)) {
+        sprocs[name] = row
+        sprocs[name].body = `CREATE ${row.security == 'DEFINER' ? row.security : ''} ${row.security == 'DEFINER' ? `= '${row.def}'` : ''} ${row.type} ${row.name} (${row.params}) ${row.comment && `COMMENT '${row.comment}'`} ${row.access}
+          ${row.body}`
+      }
+    })
+
+    connection.close()
+    return { tables, sprocs }
+  }
+};

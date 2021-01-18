@@ -159,62 +159,42 @@ ${views.map((t, i) => viewLine(schema[t], i)).join('\n')}
   return base
 }
 
+const getErd = async (erd, schema) => {
+  let result
+  if (erd) {
+    try {
+      result = await dbFactory.generateErd(erd, schema);
+    } catch (e) {
+      if (e.message === 'no db connection') {
+        try {
+          result = require (path.resolve(erd))
+        } catch ( err ) {
+          this.error('uh oh! error loading previous schema', {exit: 3})
+        }
+      }
+    }
+  }
+  return result
+}
+
 class ERD extends Command {
   static description = `generate Entity Relationship Diagram`
   async run() {
     const {flags} = this.parse(ERD)
-    const dbType = flags.dbType || 'mysql'
-    const dbSchemaProcessor = dbFactory.getSchemaProcessor(dbType);
-    let tableSchemas = ''
-    let sprocSchemas = ''
-    if (flags?.schema?.length) {
-      tableSchemas = await dbSchemaProcessor.getTableSchemas(flags.schema)
-      sprocSchemas = await dbSchemaProcessor.getRoutineSchemas(flags.schema)
-    }
-    const tablesQuery = await dbSchemaProcessor.getTableQuery(tableSchemas)
-    const sprocQuery = await dbSchemaProcessor.getRoutineQuery(sprocSchemas)
-    
-    let connection
-    let erd
-    if (flags.current) {
-      try {
-        connection = await dbSchemaProcessor.createConnection(flags.current)
-      } catch (err) {
-        this.error('uh oh! error connecting to current database', {exit: 2})
-      }
-      erd = await dbSchemaProcessor.generateErd(connection, tablesQuery, sprocQuery)
-      dbSchemaProcessor.closeConnection(connection);
-    } else {
-      try {
-        erd = require (path.resolve(flags.current))
-      } catch ( err ) {
-        this.error('uh oh! error loading previous schema', {exit: 3})
-      }
-    }
-    let previous
-    if (flags.previous) {
-      try {
-        connection = await dbSchemaProcessor.createConnection(flags.current)
-      } catch (err) {
-        this.error('uh oh! error connecting to previous database', {exit: 2})
-      }
-      previous = await dbSchemaProcessor.generateErd(connection, tablesQuery, sprocQuery)
-      dbSchemaProcessor.closeConnection(connection);
-    } else if (flags.previous) {
-      try {
-        previous = require (path.resolve(flags.previous))
-      } catch ( err ) {
-        this.error('uh oh! error loading previous schema', {exit: 3})
-      }
-    }
+    const schema = flags.schema
+    let currentErd = await getErd(flags.current, schema)
+    let previousErd = await getErd(flags.previous, schema)
+
     if (flags.save) {
-      fs.writeFileSync(flags.save, JSON.stringify(erd))
+      fs.writeFileSync(flags.save, JSON.stringify(currentErd))
     }
-    if (previous) {
-      schemaDiff(erd.tables, previous.tables)
-      sprocDiff(erd.sprocs, previous.sprocs)
+    
+    if (previousErd) {
+      schemaDiff(currentErd.tables, previousErd.tables)
+      sprocDiff(currentErd.sprocs, previousErd.sprocs)
     }
-    const g = graph(erd.tables)
+    
+    const g = graph(currentErd.tables)
     if (flags.dot) {
       fs.writeFileSync(flags.dot, g)
     }
@@ -231,17 +211,16 @@ class ERD extends Command {
       svg = svg.replace(/Z_Z /g, '&')
       //console.log(svg)
       const sList = flags.schema ? flags.schema.join(', ') :
-        Object.keys(Object.keys(erd.tables).map(n => erd.tables[n]).reduce((p,c) =>({...p, ...Object.fromEntries([[c.schema, 1]])}),{})).join(', ')
+        Object.keys(Object.keys(currentErd.tables).map(n => currentErd.tables[n]).reduce((p,c) =>({...p, ...Object.fromEntries([[c.schema, 1]])}),{})).join(', ')
       const html = htmlTemplate({
-        tables: erd.tables,
+        tables: currentErd.tables,
         schemas: sList,
-        sprocs: erd.sprocs,
-        erd: JSON.stringify(erd),
+        sprocs: currentErd.sprocs,
+        erd: JSON.stringify(currentErd),
         svg
       })
       console.log(html)
     }
-    //console.log(erd["telematics.translationmaintenanceschedule"])
   }
 }
 
@@ -257,12 +236,6 @@ ERD.flags = {
     char: 'p',
     env: 'DB_PREVIOUS',
     description: 'db connection url or json file to using when diffing, used as the previous schema'
-  }),
-  dbType: flags.string({
-    char: 'd',
-    env: 'DB_TYPE',
-    required: false,
-    description: 'the type of database to use (MySQL default)'
   }),
   quiet: flags.boolean({
     char: 'q',
@@ -282,7 +255,7 @@ ERD.flags = {
     description: 'save schema data for diffing later'
   }),
   dot: flags.string({
-    char: 'g',
+    char: 'd',
     description: 'save graphviz dot file'
   })
 }
