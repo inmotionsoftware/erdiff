@@ -17,5 +17,5 @@ const getSchemaProcessor = (connectionString) => {
 
 exports.generateErd = (current, schema) => {
   const schemaProcessor = getSchemaProcessor(current)
-  schemaProcessor.generateErd(current, schema)
+  return schemaProcessor.generateErd(current, schema)
 }

@@ -202,14 +202,12 @@ class ERD extends Command {
     let svg
     if (!flags.quiet) {
       svg = await graphviz.layout(g,'svg','neato','-n2')
-      //console.log(svg)
       svg = svg.replace(/svg width="[^"]*" height="[^"]*"/, 'svg width="100%" height="100%"')
       svg = svg.replace('<?xml version="1.0" encoding="UTF-8" standalone="no"?>', '')
       svg = svg.replace(`<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">`, '')
       svg = svg.replace(/<!--.*-->/, '')
       svg = svg.replace(/Z_Z /g, '&')
-      //console.log(svg)
       const sList = flags.schema ? flags.schema.join(', ') :
         Object.keys(Object.keys(currentErd.tables).map(n => currentErd.tables[n]).reduce((p,c) =>({...p, ...Object.fromEntries([[c.schema, 1]])}),{})).join(', ')
       const html = htmlTemplate({

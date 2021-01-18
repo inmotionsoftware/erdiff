@@ -72,12 +72,11 @@ exports.MySqlProcessor = {
       tableSchemas = getTableSchemas(schema)
       sprocSchemas = getRoutineSchemas(schema)
     }
-    
+
     const tablesQuery = getTableQuery(tableSchemas)
     const sprocQuery = getRoutineQuery(sprocSchemas)
-
-    const [tableData] = connection.query(tablesQuery)
-    const [sprocData] = connection.query(sprocQuery)
+    const [tableData] = await connection.query(tablesQuery)
+    const [sprocData] = await connection.query(sprocQuery)
     const tables = {}
     const sprocs = {}
 
