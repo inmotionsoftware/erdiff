@@ -6,55 +6,11 @@ const process = require('process')
 const deepEqual = require('deep-equal')
 const diff = require('diff')
 const { graphviz } = require('node-graphviz')
-const mysql = require('mysql2/promise')
 const {Command, flags} = require('@oclif/command')
 const pug = require('pug')
+const dbFactory = require('./dbFactory.js')
 
 const htmlTemplate = pug.compileFile('html.pug')
-
-async function generateErd (connection, tablesQuery, sprocQuery) {
-  const [tableData] = await connection.query(tablesQuery)
-  const [sprocData] = await connection.query(sprocQuery)
-  const tables = {}
-  const sprocs = {}
-  tableData.forEach(row => {
-    const name = `${row.schema}.${row.table}`
-    if (!tables.hasOwnProperty(name)) {
-      tables[name] = {
-        columns: [],
-        schema: row.schema,
-        name: row.table,
-        type: row.table_type,
-        view_tables: row.view_tables
-      }
-    }
-    const col = {
-      name: row.column,
-      type: row.type,
-      length: row.length,
-      position: row.ordinal,
-      key: row.ckey,
-      pk: !!row.pk
-    }
-    if (row.ref_table) {
-      col.ref = {
-        schema: row.ref_schema,
-        table: row.ref_table,
-        column: row.ref_column
-      }
-    }
-    tables[name].columns.push(col)
-  })
-  sprocData.forEach(row => {
-    const name = `${row.schema}.${row.name}`
-    if (!sprocs.hasOwnProperty(name)) {
-      sprocs[name] = row
-      sprocs[name].body = `CREATE ${row.security == 'DEFINER' ? row.security : ''} ${row.security == 'DEFINER' ? `= '${row.def}'` : ''} ${row.type} ${row.name} (${row.params}) ${row.comment && `COMMENT '${row.comment}'`} ${row.access}
-${row.body}`
-    }
-  })
-  return {tables, sprocs}
-}
 
 function colDiff(current, previous) {
   const ret = Object.assign({change: []}, current)
@@ -204,68 +160,30 @@ ${views.map((t, i) => viewLine(schema[t], i)).join('\n')}
 }
 
 class ERD extends Command {
-  static description = `
-generate Entity Relationship Diagram
-`
+  static description = `generate Entity Relationship Diagram`
   async run() {
     const {flags} = this.parse(ERD)
+    const dbType = flags.dbType || 'mysql'
+    const dbSchemaProcessor = dbFactory.getSchemaProcessor(dbType);
     let tableSchemas = ''
     let sprocSchemas = ''
     if (flags?.schema?.length) {
-      tableSchemas = flags.schema.map(s => `c.TABLE_SCHEMA = '${s}'`).join(' OR ')
-      sprocSchemas = flags.schema.map(s => `ROUTINE_SCHEMA = '${s}'`).join(' OR ')
+      tableSchemas = await dbSchemaProcessor.getTableSchemas(flags.schema)
+      sprocSchemas = await dbSchemaProcessor.getRoutineSchemas(flags.schema)
     }
-    const tablesQuery = `
-SELECT
-    c.TABLE_SCHEMA as \`schema\`,
-    c.TABLE_NAME as \`table\`,
-    t.TABLE_TYPE as table_type,
-    c.COLUMN_NAME as \`column\`,
-    c.ORDINAL_POSITION as ordinal,
-    c.DATA_TYPE as \`type\`,
-    COALESCE(c.CHARACTER_MAXIMUM_LENGTH, c.NUMERIC_PRECISION,c.DATETIME_PRECISION) as length,
-    c.CHARACTER_SET_NAME as \`charset\`,
-    c.COLUMN_KEY as ckey,
-    pk.CONSTRAINT_NAME = 'PRIMARY' as pk,
-    n.REFERENCED_TABLE_SCHEMA as ref_schema,
-    n.REFERENCED_TABLE_NAME as ref_table,
-    n.REFERENCED_COLUMN_NAME as ref_column,
-    (SELECT GROUP_CONCAT(CONCAT_WS('_',t.TABLE_SCHEMA,t.TABLE_NAME)) FROM information_schema.VIEW_TABLE_USAGE AS t WHERE t.VIEW_SCHEMA = c.TABLE_SCHEMA AND t.VIEW_NAME = c.TABLE_NAME GROUP BY t.VIEW_SCHEMA, t.VIEW_NAME) AS view_tables
-  FROM information_schema.\`COLUMNS\` AS c
-    LEFT JOIN information_schema.\`TABLES\` AS t ON (c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME)
-    LEFT JOIN information_schema.KEY_COLUMN_USAGE AS n ON (c.TABLE_SCHEMA=n.TABLE_SCHEMA AND c.TABLE_NAME = n.TABLE_NAME AND c.COLUMN_NAME = n.COLUMN_NAME AND n.REFERENCED_TABLE_SCHEMA IS NOT NULL)
-    LEFT JOIN information_schema.KEY_COLUMN_USAGE AS pk ON (c.TABLE_SCHEMA=pk.TABLE_SCHEMA AND c.TABLE_NAME = pk.TABLE_NAME AND c.COLUMN_NAME = pk.COLUMN_NAME AND pk.CONSTRAINT_NAME = 'PRIMARY')
-  WHERE
-    (${tableSchemas})
-  ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, c.ORDINAL_POSITION
-;`
-    const sprocQuery = `
-SELECT
-    ROUTINE_SCHEMA AS \`schema\`,
-    ROUTINE_NAME AS name,
-    ROUTINE_TYPE AS type,
-    ROUTINE_DEFINITION AS body,
-    SECURITY_TYPE AS security,
-    DEFINER AS def,
-    SQL_DATA_ACCESS AS access,
-    ROUTINE_COMMENT AS comment,
-    (SELECT GROUP_CONCAT('', CONCAT_WS(' ',PARAMETER_MODE,PARAMETER_NAME,DATA_TYPE) SEPARATOR ', ') FROM information_schema.PARAMETERS AS p WHERE (r.\`ROUTINE_SCHEMA\`=p.SPECIFIC_SCHEMA AND r.\`ROUTINE_NAME\` = p.\`SPECIFIC_NAME\`) ORDER BY p.ORDINAL_POSITION ASC) AS params
-  FROM 
-    information_schema.ROUTINES AS r
-  WHERE
-    ROUTINE_BODY='SQL' AND
-    (${sprocSchemas})
-;`
+    const tablesQuery = await dbSchemaProcessor.getTableQuery(tableSchemas)
+    const sprocQuery = await dbSchemaProcessor.getRoutineQuery(sprocSchemas)
+    
     let connection
     let erd
-    if (flags.current && flags.current.startsWith('mysql://')) {
+    if (flags.current) {
       try {
-        connection = await mysql.createConnection(flags.current)
+        connection = await dbSchemaProcessor.createConnection(flags.current)
       } catch (err) {
-        this.error('uh oh! error connecting to mysql url', {exit: 2})
+        this.error('uh oh! error connecting to current database', {exit: 2})
       }
-      erd = await generateErd(connection, tablesQuery, sprocQuery)
-      connection.close()
+      erd = await dbSchemaProcessor.generateErd(connection, tablesQuery, sprocQuery)
+      dbSchemaProcessor.closeConnection(connection);
     } else {
       try {
         erd = require (path.resolve(flags.current))
@@ -274,14 +192,14 @@ SELECT
       }
     }
     let previous
-    if (flags.previous && flags.previous.startsWith('mysql://')) {
+    if (flags.previous) {
       try {
-        connection = await mysql.createConnection(flags.previous)
+        connection = await dbSchemaProcessor.createConnection(flags.current)
       } catch (err) {
-        this.error('uh oh! error connecting to previous mysql url', {exit: 2})
+        this.error('uh oh! error connecting to previous database', {exit: 2})
       }
-      previous = await generateErd(connection, tablesQuery, sprocQuery)
-      connection.close()
+      previous = await dbSchemaProcessor.generateErd(connection, tablesQuery, sprocQuery)
+      dbSchemaProcessor.closeConnection(connection);
     } else if (flags.previous) {
       try {
         previous = require (path.resolve(flags.previous))
@@ -331,14 +249,20 @@ ERD.flags = {
   help: flags.help(),
   current: flags.string({
     char: 'c',
-    env: 'MYSQL_CURRENT',
+    env: 'DB_CURRENT',
     required: true,
-    description: 'mysql connection url or json file to generate ERD from, when diffing this is the new schema'
+    description: 'db connection url or json file to generate ERD from, when diffing this is the new schema'
   }),
   previous: flags.string({
     char: 'p',
-    env: 'MYSQL_PREVIOUS',
-    description: 'mysql connection url or json file to using when diffing, used as the previous schema'
+    env: 'DB_PREVIOUS',
+    description: 'db connection url or json file to using when diffing, used as the previous schema'
+  }),
+  dbType: flags.string({
+    char: 'd',
+    env: 'DB_TYPE',
+    required: false,
+    description: 'the type of database to use (MySQL default)'
   }),
   quiet: flags.boolean({
     char: 'q',
@@ -348,7 +272,7 @@ ERD.flags = {
   }),
   schema: flags.string({
     char: 's',
-    env: 'MYSQL_SCHEMA',
+    env: 'DB_SCHEMA',
     multiple: true,
     description: 'schema(s) to graph and optionally diff'
   }),
@@ -358,7 +282,7 @@ ERD.flags = {
     description: 'save schema data for diffing later'
   }),
   dot: flags.string({
-    char: 'd',
+    char: 'g',
     description: 'save graphviz dot file'
   })
 }
