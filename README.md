@@ -9,8 +9,6 @@ A Database diffing and diagramming tool.  Generate diffable snapshots of your sc
 
 
 
-
-
 ##USAGE
   $ erdiff
 
@@ -31,6 +29,14 @@ A Database diffing and diagramming tool.  Generate diffable snapshots of your sc
   -s, --schema=schema      schema(s) to graph and optionally diff
 
   --help                   show CLI help
+
+##ENVIRONMENT VARIABLES
+
+  MYSQL_CURRENT            environment version of -c option
+  MYSQL_PREVIOUS           environment version of -p option
+  QUIET                    environment version of -q option
+  MYSQL_SCHEMA             environment version of -s option,
+  SAVE_SCHEMA              environment version of -f option
 
 ##DESCRIPTION
   generate Entity Relationship Diagram with differences
