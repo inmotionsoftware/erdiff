@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // vim: set expandtab ts=2 sw=2:
 
 const fs = require('fs')
