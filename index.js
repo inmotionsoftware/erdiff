@@ -11,7 +11,7 @@ const {Command, flags} = require('@oclif/command')
 const pug = require('pug')
 const dbFactory = require('./dbFactory.js')
 
-const htmlTemplate = pug.compileFile('html.pug')
+const htmlTemplate = pug.compileFile(__dirname + '/html.pug')
 
 function colDiff(current, previous) {
   const ret = Object.assign({change: []}, current)
@@ -166,12 +166,14 @@ const getErd = async (erd, schema) => {
     try {
       result = await dbFactory.generateErd(erd, schema);
     } catch (e) {
-      if (e.message === 'no db connection') {
+      if (e.message === 'no db connection' && !erd.match(/^[a-zA-Z0-9]*:\/\//) ) {
         try {
           result = require (path.resolve(erd))
         } catch ( err ) {
           this.error('uh oh! error loading previous schema', {exit: 3})
         }
+      } else {
+        throw e
       }
     }
   }
@@ -183,42 +185,46 @@ class ERD extends Command {
   async run() {
     const {flags} = this.parse(ERD)
     const schema = flags.schema
-    let currentErd = await getErd(flags.current, schema)
-    let previousErd = await getErd(flags.previous, schema)
+    try {
+      let currentErd = await getErd(flags.current, schema)
+      let previousErd = await getErd(flags.previous, schema)
 
-    if (flags.save) {
-      fs.writeFileSync(flags.save, JSON.stringify(currentErd))
-    }
-    
-    if (previousErd) {
-      schemaDiff(currentErd.tables, previousErd.tables)
-      sprocDiff(currentErd.sprocs, previousErd.sprocs)
-    }
-    
-    const g = graph(currentErd.tables)
-    if (flags.dot) {
-      fs.writeFileSync(flags.dot, g)
-    }
+      if (flags.save) {
+        fs.writeFileSync(flags.save, JSON.stringify(currentErd))
+      }
 
-    let svg
-    if (!flags.quiet) {
-      svg = await graphviz.layout(g,'svg','neato','-n2')
-      svg = svg.replace(/svg width="[^"]*" height="[^"]*"/, 'svg width="100%" height="100%"')
-      svg = svg.replace('<?xml version="1.0" encoding="UTF-8" standalone="no"?>', '')
-      svg = svg.replace(`<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
- "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">`, '')
-      svg = svg.replace(/<!--.*-->/, '')
-      svg = svg.replace(/Z_Z /g, '&')
-      const sList = flags.schema ? flags.schema.join(', ') :
-        Object.keys(Object.keys(currentErd.tables).map(n => currentErd.tables[n]).reduce((p,c) =>({...p, ...Object.fromEntries([[c.schema, 1]])}),{})).join(', ')
-      const html = htmlTemplate({
-        tables: currentErd.tables,
-        schemas: sList,
-        sprocs: currentErd.sprocs,
-        erd: JSON.stringify(currentErd),
-        svg
-      })
-      console.log(html)
+      if (previousErd) {
+        schemaDiff(currentErd.tables, previousErd.tables)
+        sprocDiff(currentErd.sprocs, previousErd.sprocs)
+      }
+
+      const g = graph(currentErd.tables)
+      if (flags.dot) {
+        fs.writeFileSync(flags.dot, g)
+      }
+
+      let svg
+      if (!flags.quiet) {
+        svg = await graphviz.layout(g,'svg','neato','-n2')
+        svg = svg.replace(/svg width="[^"]*" height="[^"]*"/, 'svg width="100%" height="100%"')
+        svg = svg.replace('<?xml version="1.0" encoding="UTF-8" standalone="no"?>', '')
+        svg = svg.replace(`<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">`, '')
+        svg = svg.replace(/<!--.*-->/, '')
+        svg = svg.replace(/Z_Z /g, '&')
+        const sList = flags.schema ? flags.schema.join(', ') :
+          Object.keys(Object.keys(currentErd.tables).map(n => currentErd.tables[n]).reduce((p,c) =>({...p, ...Object.fromEntries([[c.schema, 1]])}),{})).join(', ')
+        const html = htmlTemplate({
+          tables: currentErd.tables,
+          schemas: sList,
+          sprocs: currentErd.sprocs,
+          erd: JSON.stringify(currentErd),
+          svg
+        })
+        console.log(html)
+      }
+    } catch (e) {
+      console.log(e)
     }
   }
 }

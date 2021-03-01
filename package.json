@@ -1,16 +1,16 @@
 {
   "name": "erdiff",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "Database Entity Relation Diagramming tool with diffing support for diagrams and stored procedures",
   "main": "index.js",
   "license": "MIT",
-  "bin": { 
-    "erdiff" : "./index.js" 
+  "bin": {
+    "erdiff": "./index.js"
   },
   "homepage": "https://github.com/inmotionsoftware/erdiff",
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/inmotionsoftware/erdiff"
+    "type": "git",
+    "url": "https://github.com/inmotionsoftware/erdiff"
   },
   "dependencies": {
     "@oclif/command": "^1.8.0",
@@ -20,6 +20,7 @@
     "diff": "^5.0.0",
     "mysql2": "^2.2.5",
     "node-graphviz": "^0.1.0",
+    "pg": "^8.5.1",
     "pug": "^3.0.0"
   },
   "files": [
