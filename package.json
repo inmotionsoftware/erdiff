@@ -32,7 +32,6 @@
     "sqlite.js",
     "svg-pan-zoom.min.js",
     "html.pug",
-    "yarn.lock",
-    ""
+    "yarn.lock"
   ]
 }
