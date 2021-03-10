@@ -1,17 +1,18 @@
 const { SqlLiteProcessor } = require('./sqlite.js')
 const { MySqlProcessor } = require('./mysql.js')
 const { PostgresProcessor } = require('./postgres.js')
-const { exception } = require('console')
 
 const getSchemaProcessor = (connectionString) => {
-  if(connectionString.startsWith('postgres://')) {
+  if(connectionString.startsWith('postgresql://') ||
+      connectionString.startsWith('postgres://') ||
+      connectionString.startsWith('psql://')) {
     return PostgresProcessor
   } else if(connectionString.startsWith('sqlite://')) {
     return SqlLiteProcessor
   } else if(connectionString.startsWith('mysql://')) {
     return MySqlProcessor
   } else {
-    throw new exception('no db connection')
+    throw new Error('no db connection')
   }
 }
 
