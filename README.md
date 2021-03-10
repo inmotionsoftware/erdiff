@@ -1,4 +1,4 @@
-#ERDiff
+# ERDiff
 
 A Database diffing and diagramming tool.  Generate diffable snapshots of your schema, diffs between verstions viewable in a browser.  Use it to compare environtments before deploys or as part of your process(pull requests, CI, Deployments, etc).  There are a few ways to run the tool:
 
@@ -9,10 +9,12 @@ A Database diffing and diagramming tool.  Generate diffable snapshots of your sc
 
 
 
-##USAGE
+## USAGE
+```Shell
   $ erdiff
+```
 
-##OPTIONS
+## OPTIONS
   -c, --current=current    (required) mysql connection url or json file to
                            generate ERD from, when diffing this is the new
                            schema
@@ -30,14 +32,14 @@ A Database diffing and diagramming tool.  Generate diffable snapshots of your sc
 
   --help                   show CLI help
 
-##ENVIRONMENT VARIABLES
+## ENVIRONMENT VARIABLES
 
-  MYSQL_CURRENT            environment version of -c option
-  MYSQL_PREVIOUS           environment version of -p option
-  QUIET                    environment version of -q option
-  MYSQL_SCHEMA             environment version of -s option,
-  SAVE_SCHEMA              environment version of -f option
+  * `DB_CURRENT`               environment version of -c option
+  * `DB_PREVIOUS`              environment version of -p option
+  * `QUIET`                    environment version of -q option
+  * `DB_SCHEMA`                environment version of -s option,
+  * `SAVE_SCHEMA`              environment version of -f option
 
-##DESCRIPTION
+## DESCRIPTION
   generate Entity Relationship Diagram with differences
 
