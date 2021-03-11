@@ -11,7 +11,7 @@ A Database diffing and diagramming tool.  Generate diffable snapshots of your sc
 
 ## EXAMPLE
 
-The output in [example](example/) includes the [html](example/example.html) output as well as [snapshot json](example/current_schema.json) and [graphviz](example/diff_dot.gv) output.
+The output in the [example](example/) directory includes the [html](example/example.html) / [view page on github](https://htmlpreview.github.io/?https://github.com/inmotionsoftware/erdiff/blob/update-docs/example/example.html) output as well as [snapshot json](example/current_schema.json) and [graphviz](example/diff_dot.gv) output.
 
 ![Example graph rendered showing a legend, three tables, and one view with colors indicating changes where a column was added, a column was removed and the view is new](example/graph.png)
 
