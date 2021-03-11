@@ -1,21 +1,25 @@
 # ERDiff
 
-A Database diffing and diagramming tool.  Generate diffable snapshots of your schema, diffs between verstions viewable in a browser.  Use it to compare environtments before deploys or as part of your process(pull requests, CI, Deployments, etc).  There are a few ways to run the tool:
+A Database diffing and diagramming tool.  Generate diffable snapshots of your schema or generate diffs between versions viewable in a browser.  Use it to compare environments before deploys or as part of your process(pull requests, CI, Deployments, etc).  The diffs include views and tables with relations plus stored procedures. There are a few ways to run the tool:
 
-* snapshot - save schema from a database
-* snapshot diff - diff two saved schemas
-* sequential diff - save schema from a database, modifify the database and diff the current(new) schema against the saved schema.
+* snapshot - save ERD + stored procedures as a single html file
+* save snapshot - save schema from a database
 * online diff - diff two active databases 
+* snapshot diff - diff two saved schemas
+* online vs snapshot diff - diff an active database vs a snapshot
+* sequential diff - save schema from a database, modifify the database and diff the current(new) schema against the saved schema.
+
+## EXAMPLE
+
+The output in [example](example/) includes the [html](example/example.html) output as well as [snapshot json](example/current_schema.json) and [graphviz](example/diff_dot.gv) output.
+
+![Example graph rendered showing a legend, three tables, and one view with colors indicating changes where a column was added, a column was removed and the view is new](example/graph.png)
+
+![Example stored procedure diff showing colored text indicating unchanged, removed, and added lines to a very silly stored procedure](example/procedure.png)
 
 ## INSTALL
 
-Install globally on your system with npm or yarn 
-- npm ```Shell
-sudo npm install -g erdiff
-```
-- yarn ```Shell
-sudo yarn add global erdiff
-```
+Install globally on your system with npm `sudo npm install -g erdiff` or yarn `sudo yarn add global erdiff`
 
 To use it in a project `npm install erdiff` or `yarn add erdiff`
 
@@ -36,6 +40,18 @@ $ erdiff -q -f main-branch.schema
 # migrate databse to revision B
 $ erdiff -p main-branch.schema > output.html
 ```
+
+### Dot generation from stored json
+
+[Graphvis](https://graphviz.org) output can be generated for any schema as well as a diff between schemas. Specify a single(current) schema to simply generate a normal Entity Relation Diagram, or specify two schemas to generate a diagram with diff information.
+
+```Shell
+$ cd example
+$ ../index.js -c current_schema.json -q -d current_dot.gv
+$ ../index.js -c previous_schema.json -q -d previous_dot.gv
+$ ../index.js -c current_schema.json -p previous_schema.json -q -d diff_dot.gv
+```
+
 
 ## OPTIONS
   -c, --current=current    (required) mysql connection url or json file to

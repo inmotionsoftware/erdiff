@@ -167,11 +167,7 @@ const getErd = async (erd, schema) => {
       result = await dbFactory.generateErd(erd, schema);
     } catch (e) {
       if (e.message === 'no db connection' && !erd.match(/^[a-zA-Z0-9]*:\/\//) ) {
-        try {
-          result = require (path.resolve(erd))
-        } catch ( err ) {
-          this.error('uh oh! error loading previous schema', {exit: 3})
-        }
+        result = require (path.resolve(erd))
       } else {
         throw e
       }
@@ -185,9 +181,19 @@ class ERD extends Command {
   async run() {
     const {flags} = this.parse(ERD)
     const schema = flags.schema
+    let currentErd
+    let previousErd
     try {
-      let currentErd = await getErd(flags.current, schema)
-      let previousErd = await getErd(flags.previous, schema)
+      currentErd = await getErd(flags.current, schema)
+    } catch (err) {
+      this.error('uh oh! error loading current schema', {exit: 3})
+    }
+    try {
+      previousErd = await getErd(flags.previous, schema)
+    } catch (err) {
+      this.error('uh oh! error loading previous schema', {exit: 3})
+    }
+    try {
 
       if (flags.save) {
         fs.writeFileSync(flags.save, JSON.stringify(currentErd))
@@ -224,7 +230,7 @@ class ERD extends Command {
         console.log(html)
       }
     } catch (e) {
-      console.log(e)
+      this.error(e)
     }
   }
 }
