@@ -7,11 +7,34 @@ A Database diffing and diagramming tool.  Generate diffable snapshots of your sc
 * sequential diff - save schema from a database, modifify the database and diff the current(new) schema against the saved schema.
 * online diff - diff two active databases 
 
+## INSTALL
 
+Install globally on your system with npm or yarn 
+- npm ```Shell
+sudo npm install -g erdiff
+```
+- yarn ```Shell
+sudo yarn add global erdiff
+```
+
+To use it in a project `npm install erdiff` or `yarn add erdiff`
 
 ## USAGE
+
+Example diffing two postgres databases `staging-host` and `prod-host` 
 ```Shell
-  $ erdiff
+$ erdiff -s public -c 'postgres://user@pass:staging-host:5432/database' -p 'postgres://user@pass:prod-host:5432/database' > output.html
+```
+
+Example of diffing the same database at different times, this could be done as part of a CI process
+
+```Shell
+# migrate database to revision A
+$ export DB_CURRENT=mysql://user@pass:localhost/database
+$ export DB_SCHEMA=first,second,third
+$ erdiff -q -f main-branch.schema
+# migrate databse to revision B
+$ erdiff -p main-branch.schema > output.html
 ```
 
 ## OPTIONS
