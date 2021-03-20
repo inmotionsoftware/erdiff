@@ -31,7 +31,7 @@ SELECT
     ti.cid AS ordinal,
     ti.type AS "type",
     null AS length,
-    (SELECT il."unique" FROM  pragma_index_list(sm.name) AS il) AS "unique",
+    (SELECT il."unique" FROM  pragma_index_list(sm.name) AS il JOIN pragma_index_info(il.name) AS ii WHERE ii.name = ti.name ) AS "unique",
     ti.pk AS pk,
     "main" AS ref_schema,
     (SELECT fk."table" FROM pragma_foreign_key_list(sm.name) AS fk WHERE fk.'from' = ti.name) AS ref_table,
@@ -67,7 +67,7 @@ exports.SqlLiteProcessor = {
         type: row.type,
         length: row.length,
         position: row.ordinal,
-        key: (row.unique ? 'U' : null),
+        key: (row.unique ? 'UNI' : null),
         pk: !!row.pk
       }
       if (row.ref_table) {

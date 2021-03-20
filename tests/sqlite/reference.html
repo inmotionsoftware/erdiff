@@ -1,0 +1,417 @@
+<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>/*! PocketGrid 1.1.0
+* Copyright 2013 Arnaud Leray
+* MIT License
+*/.block-group,.block,.block-group:after,.block:after,.block-group:before,.block:before{-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box}
+.block-group{*zoom:1}
+.block-group:before,.block-group:after{display:table;content:"";line-height:0}
+.block-group:after{clear:both}
+.block-group{list-style-type:none;padding:0;margin:0}
+.block-group>.block-group{clear:none;float:left;margin:0 !important}
+.block{float:left;width:100%}
+
+.left { width: 30%; padding-right: 0.5rem;}
+.right { width: 70%; border-left: 1px solid black; padding-left: 1rem;}
+
+#svg-container { height: 80vh; }
+
+ul {  padding-inline-start: 0; }
+li { list-style-type: none; clear: both;}
+
+pre { margin: 0; }
+h1 { color: #002; }
+.hidden {display: none;}
+.status {float: right;}
+.removed {color: red;}
+.added {color: darkgreen;}
+.modified {color: darkgoldenrod;}
+.show-code {text-decoration: none; padding: 0.25rem 0.5rem 0.25rem 0.5rem; margin: 0.25rem; border-radius: 5px; border: 1px solid; background: #DDD; color: black;}
+
+.right:last-child { padding-top: .5rem; }
+
+pre:before {
+  content: attr(data-ln);
+  width: 1.8rem;
+  display: inline-block;
+  color: black;
+  margin-right: 0.15rem;
+  text-align: right;
+}
+</style><script>console.log('hi')
+// some code from https://github.com/talos/jquery-svgpan/blob/master/jquery-svgpan.js
+let sprocList
+let svgEl
+let szp
+let cbb
+let selectedTable
+window.onload = () => {
+  const view = document.querySelector('#view')
+  const tables = document.querySelector('#tables')
+  const sprocChange = document.querySelector('#sprocChange')
+  svgEl = document.querySelector('#svg svg')
+  szp = svgPanZoom(svgEl)
+  szp.setMaxZoom(50)
+  resetZoom()
+  setTimeout(()=> cbb=szp.getSizes(),300)
+  view.onchange = changeView
+  sprocChange.onchange = sprocChangeFn
+  tables.onchange = tableChange
+  sprocList = document.querySelectorAll('#sprocList li')
+  for (const el of sprocList) {
+    el.onclick = showSproc
+  }
+}
+
+function resetZoom() {
+  szp.fit()
+  szp.center()
+}
+
+function changeView (evt) {
+  const content = document.querySelector('#content')
+  for (const el of content.children) {
+    el.classList.toggle('hidden')
+  }
+  const tables = document.querySelector('#tables')
+  tables.classList.toggle('hidden')
+}
+
+function tableChange (evt) {
+  const t = Array.from(document.querySelectorAll('title')).filter(el => el.textContent==evt.target.value.replace('.','_'))
+  if (selectedTable) selectedTable.style.outline = null
+  selectedTable = t[0].parentNode
+  selectedTable.style.outline = "8px solid blue"
+  const bb=selectedTable.getBBox()
+    , vbb=szp.getSizes().viewBox
+    , x=vbb.width/2-bb.x-bb.width/2
+    , y=vbb.height/2-bb.y-bb.height/2
+    , rz=szp.getSizes().realZoom
+    , zoom=vbb.width/bb.width
+  //szp.panBy({x:x*rz,y:y*rz})
+  //szp.zoom(zoom)
+}
+
+function sprocChangeFn (evt) {
+  let hideEls = sprocList
+  for (const el of hideEls) {
+    el.classList.remove('hidden')
+  }
+  hideEls = []
+  switch(evt.target.value) {
+    case 'added':
+      hideEls = document.querySelectorAll('#sprocList li:not(.li-added)')
+      break
+    case 'removed':
+      hideEls = document.querySelectorAll('#sprocList li:not(.li-removed)')
+      break
+    case 'modified':
+      hideEls = document.querySelectorAll('#sprocList li:not(.li-modified)')
+      break
+  }
+  for (const el of hideEls) {
+    el.classList.add('hidden')
+  }
+}
+
+function showSproc (evt) {
+  const listEl = evt.target.id ? evt.target : evt.target.parentNode
+  const sproc = erd.sprocs[listEl.id]
+  const disp = document.querySelector('#diff')
+  let str
+  let linenum = 0
+  const lines = t => t.value.replace(/\n$/,'').split('\n').map((l, i) => `<pre data-ln="${linenum + i}">${l}</pre>`).join('')
+  if (sproc.diff) {
+    str = sproc.diff.map((d, i) => {
+      const r =  `<div class="${d.added? 'added':d.removed?'removed':''}">${lines(d)}</div>`
+      if (!d.removed) linenum += d.count
+      return r
+    }).join('')
+  } else {
+    str = `<div class="">${sproc.body.split('\n').map((l, i) => `<pre data-ln="${linenum + i}">${l}</pre>`).join('')}</div>`
+  }
+  disp.innerHTML = str
+}
+
+function code(show) {
+  let els = document.querySelectorAll('.right:last-child div')
+  for (const el of els) {
+    el.classList.remove('hidden')
+  }
+  els = document.querySelectorAll(`.right:last-child div.${show}`)
+  for (const el of els) {
+    el.classList.add('hidden')
+  }
+}
+
+</script><script>// svg-pan-zoom v3.6.0
+// https://github.com/ariutta/svg-pan-zoom
+!function t(e,o,n){function i(r,a){if(!o[r]){if(!e[r]){var l="function"==typeof require&&require;if(!a&&l)return l(r,!0);if(s)return s(r,!0);var u=new Error("Cannot find module '"+r+"'");throw u.code="MODULE_NOT_FOUND",u}var h=o[r]={exports:{}};e[r][0].call(h.exports,function(t){var o=e[r][1][t];return i(o?o:t)},h,h.exports,t,e,o,n)}return o[r].exports}for(var s="function"==typeof require&&require,r=0;r<n.length;r++)i(n[r]);return i}({1:[function(t,e,o){var n=t("./svg-pan-zoom.js");!function(t,o){"function"==typeof define&&define.amd?define("svg-pan-zoom",function(){return n}):"undefined"!=typeof e&&e.exports&&(e.exports=n,t.svgPanZoom=n)}(window,document)},{"./svg-pan-zoom.js":4}],2:[function(t,e,o){var n=t("./svg-utilities");e.exports={enable:function(t){var e=t.svg.querySelector("defs");e||(e=document.createElementNS(n.svgNS,"defs"),t.svg.appendChild(e));var o=e.querySelector("style#svg-pan-zoom-controls-styles");if(!o){var i=document.createElementNS(n.svgNS,"style");i.setAttribute("id","svg-pan-zoom-controls-styles"),i.setAttribute("type","text/css"),i.textContent=".svg-pan-zoom-control { cursor: pointer; fill: black; fill-opacity: 0.333; } .svg-pan-zoom-control:hover { fill-opacity: 0.8; } .svg-pan-zoom-control-background { fill: white; fill-opacity: 0.5; } .svg-pan-zoom-control-background { fill-opacity: 0.8; }",e.appendChild(i)}var s=document.createElementNS(n.svgNS,"g");s.setAttribute("id","svg-pan-zoom-controls"),s.setAttribute("transform","translate("+(t.width-70)+" "+(t.height-76)+") scale(0.75)"),s.setAttribute("class","svg-pan-zoom-control"),s.appendChild(this._createZoomIn(t)),s.appendChild(this._createZoomReset(t)),s.appendChild(this._createZoomOut(t)),t.svg.appendChild(s),t.controlIcons=s},_createZoomIn:function(t){var e=document.createElementNS(n.svgNS,"g");e.setAttribute("id","svg-pan-zoom-zoom-in"),e.setAttribute("transform","translate(30.5 5) scale(0.015)"),e.setAttribute("class","svg-pan-zoom-control"),e.addEventListener("click",function(){t.getPublicInstance().zoomIn()},!1),e.addEventListener("touchstart",function(){t.getPublicInstance().zoomIn()},!1);var o=document.createElementNS(n.svgNS,"rect");o.setAttribute("x","0"),o.setAttribute("y","0"),o.setAttribute("width","1500"),o.setAttribute("height","1400"),o.setAttribute("class","svg-pan-zoom-control-background"),e.appendChild(o);var i=document.createElementNS(n.svgNS,"path");return i.setAttribute("d","M1280 576v128q0 26 -19 45t-45 19h-320v320q0 26 -19 45t-45 19h-128q-26 0 -45 -19t-19 -45v-320h-320q-26 0 -45 -19t-19 -45v-128q0 -26 19 -45t45 -19h320v-320q0 -26 19 -45t45 -19h128q26 0 45 19t19 45v320h320q26 0 45 19t19 45zM1536 1120v-960 q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5t84.5 -203.5z"),i.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(i),e},_createZoomReset:function(t){var e=document.createElementNS(n.svgNS,"g");e.setAttribute("id","svg-pan-zoom-reset-pan-zoom"),e.setAttribute("transform","translate(5 35) scale(0.4)"),e.setAttribute("class","svg-pan-zoom-control"),e.addEventListener("click",function(){t.getPublicInstance().reset()},!1),e.addEventListener("touchstart",function(){t.getPublicInstance().reset()},!1);var o=document.createElementNS(n.svgNS,"rect");o.setAttribute("x","2"),o.setAttribute("y","2"),o.setAttribute("width","182"),o.setAttribute("height","58"),o.setAttribute("class","svg-pan-zoom-control-background"),e.appendChild(o);var i=document.createElementNS(n.svgNS,"path");i.setAttribute("d","M33.051,20.632c-0.742-0.406-1.854-0.609-3.338-0.609h-7.969v9.281h7.769c1.543,0,2.701-0.188,3.473-0.562c1.365-0.656,2.048-1.953,2.048-3.891C35.032,22.757,34.372,21.351,33.051,20.632z"),i.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(i);var s=document.createElementNS(n.svgNS,"path");return s.setAttribute("d","M170.231,0.5H15.847C7.102,0.5,0.5,5.708,0.5,11.84v38.861C0.5,56.833,7.102,61.5,15.847,61.5h154.384c8.745,0,15.269-4.667,15.269-10.798V11.84C185.5,5.708,178.976,0.5,170.231,0.5z M42.837,48.569h-7.969c-0.219-0.766-0.375-1.383-0.469-1.852c-0.188-0.969-0.289-1.961-0.305-2.977l-0.047-3.211c-0.03-2.203-0.41-3.672-1.142-4.406c-0.732-0.734-2.103-1.102-4.113-1.102h-7.05v13.547h-7.055V14.022h16.524c2.361,0.047,4.178,0.344,5.45,0.891c1.272,0.547,2.351,1.352,3.234,2.414c0.731,0.875,1.31,1.844,1.737,2.906s0.64,2.273,0.64,3.633c0,1.641-0.414,3.254-1.242,4.84s-2.195,2.707-4.102,3.363c1.594,0.641,2.723,1.551,3.387,2.73s0.996,2.98,0.996,5.402v2.32c0,1.578,0.063,2.648,0.19,3.211c0.19,0.891,0.635,1.547,1.333,1.969V48.569z M75.579,48.569h-26.18V14.022h25.336v6.117H56.454v7.336h16.781v6H56.454v8.883h19.125V48.569z M104.497,46.331c-2.44,2.086-5.887,3.129-10.34,3.129c-4.548,0-8.125-1.027-10.731-3.082s-3.909-4.879-3.909-8.473h6.891c0.224,1.578,0.662,2.758,1.316,3.539c1.196,1.422,3.246,2.133,6.15,2.133c1.739,0,3.151-0.188,4.236-0.562c2.058-0.719,3.087-2.055,3.087-4.008c0-1.141-0.504-2.023-1.512-2.648c-1.008-0.609-2.607-1.148-4.796-1.617l-3.74-0.82c-3.676-0.812-6.201-1.695-7.576-2.648c-2.328-1.594-3.492-4.086-3.492-7.477c0-3.094,1.139-5.664,3.417-7.711s5.623-3.07,10.036-3.07c3.685,0,6.829,0.965,9.431,2.895c2.602,1.93,3.966,4.73,4.093,8.402h-6.938c-0.128-2.078-1.057-3.555-2.787-4.43c-1.154-0.578-2.587-0.867-4.301-0.867c-1.907,0-3.428,0.375-4.565,1.125c-1.138,0.75-1.706,1.797-1.706,3.141c0,1.234,0.561,2.156,1.682,2.766c0.721,0.406,2.25,0.883,4.589,1.43l6.063,1.43c2.657,0.625,4.648,1.461,5.975,2.508c2.059,1.625,3.089,3.977,3.089,7.055C108.157,41.624,106.937,44.245,104.497,46.331z M139.61,48.569h-26.18V14.022h25.336v6.117h-18.281v7.336h16.781v6h-16.781v8.883h19.125V48.569z M170.337,20.14h-10.336v28.43h-7.266V20.14h-10.383v-6.117h27.984V20.14z"),s.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(s),e},_createZoomOut:function(t){var e=document.createElementNS(n.svgNS,"g");e.setAttribute("id","svg-pan-zoom-zoom-out"),e.setAttribute("transform","translate(30.5 70) scale(0.015)"),e.setAttribute("class","svg-pan-zoom-control"),e.addEventListener("click",function(){t.getPublicInstance().zoomOut()},!1),e.addEventListener("touchstart",function(){t.getPublicInstance().zoomOut()},!1);var o=document.createElementNS(n.svgNS,"rect");o.setAttribute("x","0"),o.setAttribute("y","0"),o.setAttribute("width","1500"),o.setAttribute("height","1400"),o.setAttribute("class","svg-pan-zoom-control-background"),e.appendChild(o);var i=document.createElementNS(n.svgNS,"path");return i.setAttribute("d","M1280 576v128q0 26 -19 45t-45 19h-896q-26 0 -45 -19t-19 -45v-128q0 -26 19 -45t45 -19h896q26 0 45 19t19 45zM1536 1120v-960q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5 t84.5 -203.5z"),i.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(i),e},disable:function(t){t.controlIcons&&(t.controlIcons.parentNode.removeChild(t.controlIcons),t.controlIcons=null)}}},{"./svg-utilities":5}],3:[function(t,e,o){var n=t("./svg-utilities"),i=t("./utilities"),s=function(t,e){this.init(t,e)};s.prototype.init=function(t,e){this.viewport=t,this.options=e,this.originalState={zoom:1,x:0,y:0},this.activeState={zoom:1,x:0,y:0},this.updateCTMCached=i.proxy(this.updateCTM,this),this.requestAnimationFrame=i.createRequestAnimationFrame(this.options.refreshRate),this.viewBox={x:0,y:0,width:0,height:0},this.cacheViewBox();var o=this.processCTM();this.setCTM(o),this.updateCTM()},s.prototype.cacheViewBox=function(){var t=this.options.svg.getAttribute("viewBox");if(t){var e=t.split(/[\s\,]/).filter(function(t){return t}).map(parseFloat);this.viewBox.x=e[0],this.viewBox.y=e[1],this.viewBox.width=e[2],this.viewBox.height=e[3];var o=Math.min(this.options.width/this.viewBox.width,this.options.height/this.viewBox.height);this.activeState.zoom=o,this.activeState.x=(this.options.width-this.viewBox.width*o)/2,this.activeState.y=(this.options.height-this.viewBox.height*o)/2,this.updateCTMOnNextFrame(),this.options.svg.removeAttribute("viewBox")}else this.simpleViewBoxCache()},s.prototype.simpleViewBoxCache=function(){var t=this.viewport.getBBox();this.viewBox.x=t.x,this.viewBox.y=t.y,this.viewBox.width=t.width,this.viewBox.height=t.height},s.prototype.getViewBox=function(){return i.extend({},this.viewBox)},s.prototype.processCTM=function(){var t=this.getCTM();if(this.options.fit||this.options.contain){var e;e=this.options.fit?Math.min(this.options.width/this.viewBox.width,this.options.height/this.viewBox.height):Math.max(this.options.width/this.viewBox.width,this.options.height/this.viewBox.height),t.a=e,t.d=e,t.e=-this.viewBox.x*e,t.f=-this.viewBox.y*e}if(this.options.center){var o=.5*(this.options.width-(this.viewBox.width+2*this.viewBox.x)*t.a),n=.5*(this.options.height-(this.viewBox.height+2*this.viewBox.y)*t.a);t.e=o,t.f=n}return this.originalState.zoom=t.a,this.originalState.x=t.e,this.originalState.y=t.f,t},s.prototype.getOriginalState=function(){return i.extend({},this.originalState)},s.prototype.getState=function(){return i.extend({},this.activeState)},s.prototype.getZoom=function(){return this.activeState.zoom},s.prototype.getRelativeZoom=function(){return this.activeState.zoom/this.originalState.zoom},s.prototype.computeRelativeZoom=function(t){return t/this.originalState.zoom},s.prototype.getPan=function(){return{x:this.activeState.x,y:this.activeState.y}},s.prototype.getCTM=function(){var t=this.options.svg.createSVGMatrix();return t.a=this.activeState.zoom,t.b=0,t.c=0,t.d=this.activeState.zoom,t.e=this.activeState.x,t.f=this.activeState.y,t},s.prototype.setCTM=function(t){var e=this.isZoomDifferent(t),o=this.isPanDifferent(t);if(e||o){if(e&&(this.options.beforeZoom(this.getRelativeZoom(),this.computeRelativeZoom(t.a))===!1?(t.a=t.d=this.activeState.zoom,e=!1):(this.updateCache(t),this.options.onZoom(this.getRelativeZoom()))),o){var n=this.options.beforePan(this.getPan(),{x:t.e,y:t.f}),s=!1,r=!1;n===!1?(t.e=this.getPan().x,t.f=this.getPan().y,s=r=!0):i.isObject(n)&&(n.x===!1?(t.e=this.getPan().x,s=!0):i.isNumber(n.x)&&(t.e=n.x),n.y===!1?(t.f=this.getPan().y,r=!0):i.isNumber(n.y)&&(t.f=n.y)),s&&r||!this.isPanDifferent(t)?o=!1:(this.updateCache(t),this.options.onPan(this.getPan()))}(e||o)&&this.updateCTMOnNextFrame()}},s.prototype.isZoomDifferent=function(t){return this.activeState.zoom!==t.a},s.prototype.isPanDifferent=function(t){return this.activeState.x!==t.e||this.activeState.y!==t.f},s.prototype.updateCache=function(t){this.activeState.zoom=t.a,this.activeState.x=t.e,this.activeState.y=t.f},s.prototype.pendingUpdate=!1,s.prototype.updateCTMOnNextFrame=function(){this.pendingUpdate||(this.pendingUpdate=!0,this.requestAnimationFrame.call(window,this.updateCTMCached))},s.prototype.updateCTM=function(){var t=this.getCTM();n.setCTM(this.viewport,t,this.defs),this.pendingUpdate=!1,this.options.onUpdatedCTM&&this.options.onUpdatedCTM(t)},e.exports=function(t,e){return new s(t,e)}},{"./svg-utilities":5,"./utilities":7}],4:[function(t,e,o){var n=t("./uniwheel"),i=t("./control-icons"),s=t("./utilities"),r=t("./svg-utilities"),a=t("./shadow-viewport"),l=function(t,e){this.init(t,e)},u={viewportSelector:".svg-pan-zoom_viewport",panEnabled:!0,controlIconsEnabled:!1,zoomEnabled:!0,dblClickZoomEnabled:!0,mouseWheelZoomEnabled:!0,preventMouseEventsDefault:!0,zoomScaleSensitivity:.1,minZoom:.5,maxZoom:10,fit:!0,contain:!1,center:!0,refreshRate:"auto",beforeZoom:null,onZoom:null,beforePan:null,onPan:null,customEventsHandler:null,eventsListenerElement:null,onUpdatedCTM:null},h={passive:!0};l.prototype.init=function(t,e){var o=this;this.svg=t,this.defs=t.querySelector("defs"),r.setupSvgAttributes(this.svg),this.options=s.extend(s.extend({},u),e),this.state="none";var n=r.getBoundingClientRectNormalized(t);this.width=n.width,this.height=n.height,this.viewport=a(r.getOrCreateViewport(this.svg,this.options.viewportSelector),{svg:this.svg,width:this.width,height:this.height,fit:this.options.fit,contain:this.options.contain,center:this.options.center,refreshRate:this.options.refreshRate,beforeZoom:function(t,e){if(o.viewport&&o.options.beforeZoom)return o.options.beforeZoom(t,e)},onZoom:function(t){if(o.viewport&&o.options.onZoom)return o.options.onZoom(t)},beforePan:function(t,e){if(o.viewport&&o.options.beforePan)return o.options.beforePan(t,e)},onPan:function(t){if(o.viewport&&o.options.onPan)return o.options.onPan(t)},onUpdatedCTM:function(t){if(o.viewport&&o.options.onUpdatedCTM)return o.options.onUpdatedCTM(t)}});var l=this.getPublicInstance();l.setBeforeZoom(this.options.beforeZoom),l.setOnZoom(this.options.onZoom),l.setBeforePan(this.options.beforePan),l.setOnPan(this.options.onPan),l.setOnUpdatedCTM(this.options.onUpdatedCTM),this.options.controlIconsEnabled&&i.enable(this),this.lastMouseWheelEventTime=Date.now(),this.setupHandlers()},l.prototype.setupHandlers=function(){var t=this,e=null;if(this.eventListeners={mousedown:function(o){var n=t.handleMouseDown(o,e);return e=o,n},touchstart:function(o){var n=t.handleMouseDown(o,e);return e=o,n},mouseup:function(e){return t.handleMouseUp(e)},touchend:function(e){return t.handleMouseUp(e)},mousemove:function(e){return t.handleMouseMove(e)},touchmove:function(e){return t.handleMouseMove(e)},mouseleave:function(e){return t.handleMouseUp(e)},touchleave:function(e){return t.handleMouseUp(e)},touchcancel:function(e){return t.handleMouseUp(e)}},null!=this.options.customEventsHandler){this.options.customEventsHandler.init({svgElement:this.svg,eventsListenerElement:this.options.eventsListenerElement,instance:this.getPublicInstance()});var o=this.options.customEventsHandler.haltEventListeners;if(o&&o.length)for(var n=o.length-1;n>=0;n--)this.eventListeners.hasOwnProperty(o[n])&&delete this.eventListeners[o[n]]}for(var i in this.eventListeners)(this.options.eventsListenerElement||this.svg).addEventListener(i,this.eventListeners[i],!this.options.preventMouseEventsDefault&&h);this.options.mouseWheelZoomEnabled&&(this.options.mouseWheelZoomEnabled=!1,this.enableMouseWheelZoom())},l.prototype.enableMouseWheelZoom=function(){if(!this.options.mouseWheelZoomEnabled){var t=this;this.wheelListener=function(e){return t.handleMouseWheel(e)};var e=!this.options.preventMouseEventsDefault;n.on(this.options.eventsListenerElement||this.svg,this.wheelListener,e),this.options.mouseWheelZoomEnabled=!0}},l.prototype.disableMouseWheelZoom=function(){if(this.options.mouseWheelZoomEnabled){var t=!this.options.preventMouseEventsDefault;n.off(this.options.eventsListenerElement||this.svg,this.wheelListener,t),this.options.mouseWheelZoomEnabled=!1}},l.prototype.handleMouseWheel=function(t){if(this.options.zoomEnabled&&"none"===this.state){this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1);var e=t.deltaY||1,o=Date.now()-this.lastMouseWheelEventTime,n=3+Math.max(0,30-o);this.lastMouseWheelEventTime=Date.now(),"deltaMode"in t&&0===t.deltaMode&&t.wheelDelta&&(e=0===t.deltaY?0:Math.abs(t.wheelDelta)/t.deltaY),e=-.3<e&&e<.3?e:(e>0?1:-1)*Math.log(Math.abs(e)+10)/n;var i=this.svg.getScreenCTM().inverse(),s=r.getEventPoint(t,this.svg).matrixTransform(i),a=Math.pow(1+this.options.zoomScaleSensitivity,-1*e);this.zoomAtPoint(a,s)}},l.prototype.zoomAtPoint=function(t,e,o){var n=this.viewport.getOriginalState();o?(t=Math.max(this.options.minZoom*n.zoom,Math.min(this.options.maxZoom*n.zoom,t)),t/=this.getZoom()):this.getZoom()*t<this.options.minZoom*n.zoom?t=this.options.minZoom*n.zoom/this.getZoom():this.getZoom()*t>this.options.maxZoom*n.zoom&&(t=this.options.maxZoom*n.zoom/this.getZoom());var i=this.viewport.getCTM(),s=e.matrixTransform(i.inverse()),r=this.svg.createSVGMatrix().translate(s.x,s.y).scale(t).translate(-s.x,-s.y),a=i.multiply(r);a.a!==i.a&&this.viewport.setCTM(a)},l.prototype.zoom=function(t,e){this.zoomAtPoint(t,r.getSvgCenterPoint(this.svg,this.width,this.height),e)},l.prototype.publicZoom=function(t,e){e&&(t=this.computeFromRelativeZoom(t)),this.zoom(t,e)},l.prototype.publicZoomAtPoint=function(t,e,o){if(o&&(t=this.computeFromRelativeZoom(t)),"SVGPoint"!==s.getType(e)){if(!("x"in e&&"y"in e))throw new Error("Given point is invalid");e=r.createSVGPoint(this.svg,e.x,e.y)}this.zoomAtPoint(t,e,o)},l.prototype.getZoom=function(){return this.viewport.getZoom()},l.prototype.getRelativeZoom=function(){return this.viewport.getRelativeZoom()},l.prototype.computeFromRelativeZoom=function(t){return t*this.viewport.getOriginalState().zoom},l.prototype.resetZoom=function(){var t=this.viewport.getOriginalState();this.zoom(t.zoom,!0)},l.prototype.resetPan=function(){this.pan(this.viewport.getOriginalState())},l.prototype.reset=function(){this.resetZoom(),this.resetPan()},l.prototype.handleDblClick=function(t){if(this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),this.options.controlIconsEnabled){var e=t.target.getAttribute("class")||"";if(e.indexOf("svg-pan-zoom-control")>-1)return!1}var o;o=t.shiftKey?1/(2*(1+this.options.zoomScaleSensitivity)):2*(1+this.options.zoomScaleSensitivity);var n=r.getEventPoint(t,this.svg).matrixTransform(this.svg.getScreenCTM().inverse());this.zoomAtPoint(o,n)},l.prototype.handleMouseDown=function(t,e){this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),s.mouseAndTouchNormalize(t,this.svg),this.options.dblClickZoomEnabled&&s.isDblClick(t,e)?this.handleDblClick(t):(this.state="pan",this.firstEventCTM=this.viewport.getCTM(),this.stateOrigin=r.getEventPoint(t,this.svg).matrixTransform(this.firstEventCTM.inverse()))},l.prototype.handleMouseMove=function(t){if(this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),"pan"===this.state&&this.options.panEnabled){var e=r.getEventPoint(t,this.svg).matrixTransform(this.firstEventCTM.inverse()),o=this.firstEventCTM.translate(e.x-this.stateOrigin.x,e.y-this.stateOrigin.y);this.viewport.setCTM(o)}},l.prototype.handleMouseUp=function(t){this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),"pan"===this.state&&(this.state="none")},l.prototype.fit=function(){var t=this.viewport.getViewBox(),e=Math.min(this.width/t.width,this.height/t.height);this.zoom(e,!0)},l.prototype.contain=function(){var t=this.viewport.getViewBox(),e=Math.max(this.width/t.width,this.height/t.height);this.zoom(e,!0)},l.prototype.center=function(){var t=this.viewport.getViewBox(),e=.5*(this.width-(t.width+2*t.x)*this.getZoom()),o=.5*(this.height-(t.height+2*t.y)*this.getZoom());this.getPublicInstance().pan({x:e,y:o})},l.prototype.updateBBox=function(){this.viewport.simpleViewBoxCache()},l.prototype.pan=function(t){var e=this.viewport.getCTM();e.e=t.x,e.f=t.y,this.viewport.setCTM(e)},l.prototype.panBy=function(t){var e=this.viewport.getCTM();e.e+=t.x,e.f+=t.y,this.viewport.setCTM(e)},l.prototype.getPan=function(){var t=this.viewport.getState();return{x:t.x,y:t.y}},l.prototype.resize=function(){var t=r.getBoundingClientRectNormalized(this.svg);this.width=t.width,this.height=t.height;var e=this.viewport;e.options.width=this.width,e.options.height=this.height,e.processCTM(),this.options.controlIconsEnabled&&(this.getPublicInstance().disableControlIcons(),this.getPublicInstance().enableControlIcons())},l.prototype.destroy=function(){var t=this;this.beforeZoom=null,this.onZoom=null,this.beforePan=null,this.onPan=null,this.onUpdatedCTM=null,null!=this.options.customEventsHandler&&this.options.customEventsHandler.destroy({svgElement:this.svg,eventsListenerElement:this.options.eventsListenerElement,instance:this.getPublicInstance()});for(var e in this.eventListeners)(this.options.eventsListenerElement||this.svg).removeEventListener(e,this.eventListeners[e],!this.options.preventMouseEventsDefault&&h);this.disableMouseWheelZoom(),this.getPublicInstance().disableControlIcons(),this.reset(),c=c.filter(function(e){return e.svg!==t.svg}),delete this.options,delete this.viewport,delete this.publicInstance,delete this.pi,this.getPublicInstance=function(){return null}},l.prototype.getPublicInstance=function(){var t=this;return this.publicInstance||(this.publicInstance=this.pi={enablePan:function(){return t.options.panEnabled=!0,t.pi},disablePan:function(){return t.options.panEnabled=!1,t.pi},isPanEnabled:function(){return!!t.options.panEnabled},pan:function(e){return t.pan(e),t.pi},panBy:function(e){return t.panBy(e),t.pi},getPan:function(){return t.getPan()},setBeforePan:function(e){return t.options.beforePan=null===e?null:s.proxy(e,t.publicInstance),t.pi},setOnPan:function(e){return t.options.onPan=null===e?null:s.proxy(e,t.publicInstance),t.pi},enableZoom:function(){return t.options.zoomEnabled=!0,t.pi},disableZoom:function(){return t.options.zoomEnabled=!1,t.pi},isZoomEnabled:function(){return!!t.options.zoomEnabled},enableControlIcons:function(){return t.options.controlIconsEnabled||(t.options.controlIconsEnabled=!0,i.enable(t)),t.pi},disableControlIcons:function(){return t.options.controlIconsEnabled&&(t.options.controlIconsEnabled=!1,i.disable(t)),t.pi},isControlIconsEnabled:function(){return!!t.options.controlIconsEnabled},enableDblClickZoom:function(){return t.options.dblClickZoomEnabled=!0,t.pi},disableDblClickZoom:function(){return t.options.dblClickZoomEnabled=!1,t.pi},isDblClickZoomEnabled:function(){return!!t.options.dblClickZoomEnabled},enableMouseWheelZoom:function(){return t.enableMouseWheelZoom(),t.pi},disableMouseWheelZoom:function(){return t.disableMouseWheelZoom(),t.pi},isMouseWheelZoomEnabled:function(){return!!t.options.mouseWheelZoomEnabled},setZoomScaleSensitivity:function(e){return t.options.zoomScaleSensitivity=e,t.pi},setMinZoom:function(e){return t.options.minZoom=e,t.pi},setMaxZoom:function(e){return t.options.maxZoom=e,t.pi},setBeforeZoom:function(e){return t.options.beforeZoom=null===e?null:s.proxy(e,t.publicInstance),t.pi},setOnZoom:function(e){return t.options.onZoom=null===e?null:s.proxy(e,t.publicInstance),t.pi},zoom:function(e){return t.publicZoom(e,!0),t.pi},zoomBy:function(e){return t.publicZoom(e,!1),t.pi},zoomAtPoint:function(e,o){return t.publicZoomAtPoint(e,o,!0),t.pi},zoomAtPointBy:function(e,o){return t.publicZoomAtPoint(e,o,!1),t.pi},zoomIn:function(){return this.zoomBy(1+t.options.zoomScaleSensitivity),t.pi},zoomOut:function(){return this.zoomBy(1/(1+t.options.zoomScaleSensitivity)),t.pi},getZoom:function(){return t.getRelativeZoom()},setOnUpdatedCTM:function(e){return t.options.onUpdatedCTM=null===e?null:s.proxy(e,t.publicInstance),t.pi},resetZoom:function(){return t.resetZoom(),t.pi},resetPan:function(){return t.resetPan(),t.pi},reset:function(){return t.reset(),t.pi},fit:function(){return t.fit(),t.pi},contain:function(){return t.contain(),t.pi},center:function(){return t.center(),t.pi},updateBBox:function(){return t.updateBBox(),t.pi},resize:function(){return t.resize(),t.pi},getSizes:function(){return{width:t.width,height:t.height,realZoom:t.getZoom(),viewBox:t.viewport.getViewBox()}},destroy:function(){return t.destroy(),t.pi}}),this.publicInstance};var c=[],p=function(t,e){var o=s.getSvg(t);if(null===o)return null;for(var n=c.length-1;n>=0;n--)if(c[n].svg===o)return c[n].instance.getPublicInstance();return c.push({svg:o,instance:new l(o,e)}),c[c.length-1].instance.getPublicInstance()};e.exports=p},{"./control-icons":2,"./shadow-viewport":3,"./svg-utilities":5,"./uniwheel":6,"./utilities":7}],5:[function(t,e,o){var n=t("./utilities"),i="unknown";document.documentMode&&(i="ie"),e.exports={svgNS:"http://www.w3.org/2000/svg",xmlNS:"http://www.w3.org/XML/1998/namespace",xmlnsNS:"http://www.w3.org/2000/xmlns/",xlinkNS:"http://www.w3.org/1999/xlink",evNS:"http://www.w3.org/2001/xml-events",getBoundingClientRectNormalized:function(t){if(t.clientWidth&&t.clientHeight)return{width:t.clientWidth,height:t.clientHeight};if(t.getBoundingClientRect())return t.getBoundingClientRect();throw new Error("Cannot get BoundingClientRect for SVG.")},getOrCreateViewport:function(t,e){var o=null;if(o=n.isElement(e)?e:t.querySelector(e),!o){var i=Array.prototype.slice.call(t.childNodes||t.children).filter(function(t){return"defs"!==t.nodeName&&"#text"!==t.nodeName});1===i.length&&"g"===i[0].nodeName&&null===i[0].getAttribute("transform")&&(o=i[0])}if(!o){var s="viewport-"+(new Date).toISOString().replace(/\D/g,"");o=document.createElementNS(this.svgNS,"g"),o.setAttribute("id",s);var r=t.childNodes||t.children;if(r&&r.length>0)for(var a=r.length;a>0;a--)"defs"!==r[r.length-a].nodeName&&o.appendChild(r[r.length-a]);t.appendChild(o)}var l=[];return o.getAttribute("class")&&(l=o.getAttribute("class").split(" ")),~l.indexOf("svg-pan-zoom_viewport")||(l.push("svg-pan-zoom_viewport"),o.setAttribute("class",l.join(" "))),o},setupSvgAttributes:function(t){if(t.setAttribute("xmlns",this.svgNS),t.setAttributeNS(this.xmlnsNS,"xmlns:xlink",this.xlinkNS),t.setAttributeNS(this.xmlnsNS,"xmlns:ev",this.evNS),null!==t.parentNode){var e=t.getAttribute("style")||"";e.toLowerCase().indexOf("overflow")===-1&&t.setAttribute("style","overflow: hidden; "+e)}},internetExplorerRedisplayInterval:300,refreshDefsGlobal:n.throttle(function(){for(var t=document.querySelectorAll("defs"),e=t.length,o=0;o<e;o++){var n=t[o];n.parentNode.insertBefore(n,n)}},this?this.internetExplorerRedisplayInterval:null),setCTM:function(t,e,o){var n=this,s="matrix("+e.a+","+e.b+","+e.c+","+e.d+","+e.e+","+e.f+")";t.setAttributeNS(null,"transform",s),"transform"in t.style?t.style.transform=s:"-ms-transform"in t.style?t.style["-ms-transform"]=s:"-webkit-transform"in t.style&&(t.style["-webkit-transform"]=s),"ie"===i&&o&&(o.parentNode.insertBefore(o,o),window.setTimeout(function(){n.refreshDefsGlobal()},n.internetExplorerRedisplayInterval))},getEventPoint:function(t,e){var o=e.createSVGPoint();return n.mouseAndTouchNormalize(t,e),o.x=t.clientX,o.y=t.clientY,o},getSvgCenterPoint:function(t,e,o){return this.createSVGPoint(t,e/2,o/2)},createSVGPoint:function(t,e,o){var n=t.createSVGPoint();return n.x=e,n.y=o,n}}},{"./utilities":7}],6:[function(t,e,o){e.exports=function(){function t(t,e){var o=function(t){!t&&(t=window.event);var o={originalEvent:t,target:t.target||t.srcElement,type:"wheel",deltaMode:"MozMousePixelScroll"==t.type?0:1,deltaX:0,delatZ:0,preventDefault:function(){t.preventDefault?t.preventDefault():t.returnValue=!1}};return"mousewheel"==u?(o.deltaY=-.025*t.wheelDelta,t.wheelDeltaX&&(o.deltaX=-.025*t.wheelDeltaX)):o.deltaY=t.detail,e(o)};return c.push({element:t,fn:o}),o}function e(t){for(var e=0;e<c.length;e++)if(c[e].element===t)return c[e].fn;return function(){}}function o(t){for(var e=0;e<c.length;e++)if(c[e].element===t)return c.splice(e,1)}function n(e,o,n,i){var s;s="wheel"===u?n:t(e,n),e[a](h+o,s,!!i&&p)}function i(t,n,i,s){var r;r="wheel"===u?i:e(t),t[l](h+n,r,!!s&&p),o(t)}function s(t,e,o){n(t,u,e,o),"DOMMouseScroll"==u&&n(t,"MozMousePixelScroll",e,o)}function r(t,e,o){i(t,u,e,o),"DOMMouseScroll"==u&&i(t,"MozMousePixelScroll",e,o)}var a,l,u,h="",c=[],p={passive:!0};return window.addEventListener?(a="addEventListener",l="removeEventListener"):(a="attachEvent",l="detachEvent",h="on"),u="onwheel"in document.createElement("div")?"wheel":void 0!==document.onmousewheel?"mousewheel":"DOMMouseScroll",{on:s,off:r}}()},{}],7:[function(t,e,o){function n(t){return function(e){window.setTimeout(e,t)}}e.exports={extend:function(t,e){t=t||{};for(var o in e)this.isObject(e[o])?t[o]=this.extend(t[o],e[o]):t[o]=e[o];return t},isElement:function(t){return t instanceof HTMLElement||t instanceof SVGElement||t instanceof SVGSVGElement||t&&"object"==typeof t&&null!==t&&1===t.nodeType&&"string"==typeof t.nodeName},isObject:function(t){return"[object Object]"===Object.prototype.toString.call(t)},isNumber:function(t){return!isNaN(parseFloat(t))&&isFinite(t)},getSvg:function(t){var e,o;if(this.isElement(t))e=t;else{if(!("string"==typeof t||t instanceof String))throw new Error("Provided selector is not an HTML object nor String");if(e=document.querySelector(t),!e)throw new Error("Provided selector did not find any elements. Selector: "+t)}if("svg"===e.tagName.toLowerCase())o=e;else if("object"===e.tagName.toLowerCase())o=e.contentDocument.documentElement;else{if("embed"!==e.tagName.toLowerCase())throw"img"===e.tagName.toLowerCase()?new Error('Cannot script an SVG in an "img" element. Please use an "object" element or an in-line SVG.'):new Error("Cannot get SVG.");o=e.getSVGDocument().documentElement}return o},proxy:function(t,e){return function(){return t.apply(e,arguments)}},getType:function(t){return Object.prototype.toString.apply(t).replace(/^\[object\s/,"").replace(/\]$/,"")},mouseAndTouchNormalize:function(t,e){if(void 0===t.clientX||null===t.clientX)if(t.clientX=0,t.clientY=0,void 0!==t.touches&&t.touches.length){if(void 0!==t.touches[0].clientX)t.clientX=t.touches[0].clientX,t.clientY=t.touches[0].clientY;else if(void 0!==t.touches[0].pageX){var o=e.getBoundingClientRect();t.clientX=t.touches[0].pageX-o.left,t.clientY=t.touches[0].pageY-o.top}}else void 0!==t.originalEvent&&void 0!==t.originalEvent.clientX&&(t.clientX=t.originalEvent.clientX,t.clientY=t.originalEvent.clientY)},isDblClick:function(t,e){if(2===t.detail)return!0;if(void 0!==e&&null!==e){var o=t.timeStamp-e.timeStamp,n=Math.sqrt(Math.pow(t.clientX-e.clientX,2)+Math.pow(t.clientY-e.clientY,2));return o<250&&n<10}return!1},now:Date.now||function(){return(new Date).getTime()},throttle:function(t,e,o){var n,i,s,r=this,a=null,l=0;o||(o={});var u=function(){l=o.leading===!1?0:r.now(),a=null,s=t.apply(n,i),a||(n=i=null)};return function(){var h=r.now();l||o.leading!==!1||(l=h);var c=e-(h-l);return n=this,i=arguments,c<=0||c>e?(clearTimeout(a),a=null,l=h,s=t.apply(n,i),a||(n=i=null)):a||o.trailing===!1||(a=setTimeout(u,c)),s}},createRequestAnimationFrame:function(t){var e=null;return"auto"!==t&&t<60&&t>1&&(e=Math.floor(1e3/t)),null===e?window.requestAnimationFrame||n(33):n(e)}}},{}]},{},[1]);</script><script>var erd={"tables":{"main.likes":{"columns":[{"name":"postid","type":"INTEGER","length":null,"position":0,"key":"UNI","pk":true,"ref":{"schema":"main","table":"posts","column":"postid"}},{"name":"userid","type":"INTEGER","length":null,"position":1,"key":"UNI","pk":true,"ref":{"schema":"main","table":"users","column":"userid"}},{"name":"created","type":"datetime","length":null,"position":2,"key":null,"pk":false},{"name":"deleted","type":"datetime","length":null,"position":3,"key":null,"pk":false,"removed":true}],"schema":"main","name":"likes","type":"table"},"main.posts":{"columns":[{"name":"postid","type":"INTEGER","length":null,"position":0,"key":null,"pk":true},{"name":"title","type":"TEXT","length":null,"position":1,"key":null,"pk":false},{"name":"body","type":"TEXT","length":null,"position":2,"key":null,"pk":false},{"name":"userid","type":"INTEGER","length":null,"position":3,"key":null,"pk":false,"ref":{"schema":"main","table":"users","column":"userid"}},{"name":"inreplyto","type":"INTEGER","length":null,"position":4,"key":null,"pk":false,"ref":{"schema":"main","table":"posts","column":"postid"}},{"name":"created","type":"datetime","length":null,"position":5,"key":null,"pk":false},{"name":"updated","type":"datetime","length":null,"position":6,"key":null,"pk":false},{"name":"deleted","type":"datetime","length":null,"position":7,"key":null,"pk":false}],"schema":"main","name":"posts","type":"table"},"main.stats":{"columns":[{"name":"userid","type":"INTEGER","length":null,"position":0,"key":null,"pk":false},{"name":"title","type":"TEXT","length":null,"position":1,"key":null,"pk":false},{"name":"likecount","type":"","length":null,"position":2,"key":null,"pk":false},{"name":"replycount","type":"","length":null,"position":3,"key":null,"pk":false},{"name":"ratio","type":"","length":null,"position":4,"key":null,"pk":false}],"schema":"main","name":"stats","type":"view","added":true},"main.users":{"columns":[{"name":"userid","type":"INTEGER","length":null,"position":0,"key":null,"pk":true},{"name":"name","type":"TEXT","length":null,"position":1,"key":null,"pk":false},{"name":"email","type":"TEXT","length":null,"position":2,"key":"UNI","pk":false},{"name":"password","type":"TEXT","length":null,"position":3,"key":null,"pk":false},{"name":"created","type":"datetime","length":null,"position":4,"key":null,"pk":false},{"name":"updated","type":"datetime","length":null,"position":5,"key":null,"pk":false},{"name":"deleted","type":"datetime","length":null,"position":6,"key":null,"pk":false},{"name":"nickname","type":"TEXT","length":null,"position":7,"key":null,"pk":false,"added":true}],"schema":"main","name":"users","type":"table"}},"sprocs":{}}</script></head><body><h1>Schema diff for main</h1><div> <select id="view"><option value="svg">Schemas</option><option value="diffs">Stored Procedures</option></select><select id="tables"><option value="main.likes">main.likes</option><option value="main.posts">main.posts</option><option value="main.stats">main.stats</option><option value="main.users">main.users</option></select></div><div class="block" id="content"><div id="svg"> <div class="block" style="margin: 0.5rem;"><a class="show-code" href="#" onclick="javascript: resetZoom()">Reset View</a></div><div class="block" id="svg-container">
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.44.0 (20200518.1210)
+ -->
+
+<svg width="100%" height="100%"
+ viewBox="0.00 0.00 819.00 627.81" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 623.81)">
+<title>erd</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-623.81 815,-623.81 815,4 -4,4"/>
+<!-- legend -->
+<g id="node1" class="node">
+<title>legend</title>
+<polygon fill="none" stroke="black" stroke-width="6" points="90,-0.5 90,-170.5 270,-170.5 270,-0.5 90,-0.5"/>
+<polygon fill="white" stroke="transparent" points="98,-4.5 98,-166.5 262,-166.5 262,-4.5 98,-4.5"/>
+<polygon fill="none" stroke="black" points="98,-136.5 98,-166.5 262,-166.5 262,-136.5 98,-136.5"/>
+<text text-anchor="start" x="150.01" y="-145.5" font-family="Times,serif" font-size="20.00">Legend</text>
+<polygon fill="none" stroke="black" points="98,-114.5 98,-136.5 188,-136.5 188,-114.5 98,-114.5"/>
+<text text-anchor="start" x="100.81" y="-120.9" font-family="Times,serif" font-size="14.00">&#x1F52D;</text>
+<polygon fill="none" stroke="black" points="188,-114.5 188,-136.5 262,-136.5 262,-114.5 188,-114.5"/>
+<text text-anchor="start" x="206.73" y="-120.9" font-family="Times,serif" font-size="14.00">VIEW</text>
+<polygon fill="none" stroke="black" points="98,-92.5 98,-114.5 188,-114.5 188,-92.5 98,-92.5"/>
+<text text-anchor="start" x="100.81" y="-98.9" font-family="Times,serif" font-size="14.00">&#x1F4D8;</text>
+<polygon fill="none" stroke="black" points="188,-92.5 188,-114.5 262,-114.5 262,-92.5 188,-92.5"/>
+<text text-anchor="start" x="202.45" y="-98.9" font-family="Times,serif" font-size="14.00">TABLE</text>
+<polygon fill="lightgreen" stroke="transparent" points="98,-70.5 98,-92.5 262,-92.5 262,-70.5 98,-70.5"/>
+<polygon fill="none" stroke="black" points="98,-70.5 98,-92.5 262,-92.5 262,-70.5 98,-70.5"/>
+<text text-anchor="start" x="115.66" y="-76.9" font-family="Times,serif" font-size="14.00">Added column or table</text>
+<polygon fill="lightpink" stroke="transparent" points="98,-48.5 98,-70.5 262,-70.5 262,-48.5 98,-48.5"/>
+<polygon fill="none" stroke="black" points="98,-48.5 98,-70.5 262,-70.5 262,-48.5 98,-48.5"/>
+<text text-anchor="start" x="107.49" y="-54.9" font-family="Times,serif" font-size="14.00">Removed column or table</text>
+<polygon fill="none" stroke="black" points="98,-26.5 98,-48.5 188,-48.5 188,-26.5 98,-26.5"/>
+<text text-anchor="start" x="134.06" y="-32.9" font-family="Times,serif" font-size="14.00">PK</text>
+<polygon fill="none" stroke="black" points="188,-26.5 188,-48.5 262,-48.5 262,-26.5 188,-26.5"/>
+<text text-anchor="start" x="190.59" y="-32.9" font-family="Times,serif" font-size="14.00">Primary key</text>
+<polygon fill="none" stroke="black" points="98,-4.5 98,-26.5 188,-26.5 188,-4.5 98,-4.5"/>
+<text text-anchor="start" x="137.95" y="-10.9" font-family="Times,serif" font-size="14.00">U</text>
+<polygon fill="none" stroke="black" points="188,-4.5 188,-26.5 262,-26.5 262,-4.5 188,-4.5"/>
+<text text-anchor="start" x="204.39" y="-10.9" font-family="Times,serif" font-size="14.00">Unique</text>
+</g>
+<!-- main_stats -->
+<g id="node2" class="node">
+<title>main_stats</title>
+<polygon fill="lightgreen" stroke="transparent" points="8.5,-369 8.5,-401 331.5,-401 331.5,-369 8.5,-369"/>
+<polygon fill="none" stroke="black" points="8.5,-369 8.5,-401 331.5,-401 331.5,-369 8.5,-369"/>
+<text text-anchor="start" x="36.23" y="-380" font-family="Times,serif" font-size="20.00">&#x1F4D8; main stats</text>
+<text text-anchor="start" x="242.33" y="-380" font-family="Times,serif" font-size="14.00"> &nbsp;</text>
+<polygon fill="none" stroke="black" points="8.5,-341 8.5,-369 135.5,-369 135.5,-341 8.5,-341"/>
+<text text-anchor="start" x="12.31" y="-350.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="135.5,-341 135.5,-369 264.5,-369 264.5,-341 135.5,-341"/>
+<text text-anchor="start" x="141.5" y="-351.4" font-family="Times,serif" font-weight="bold" font-size="14.00">userid</text>
+<text text-anchor="start" x="175.71" y="-351.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="264.5,-341 264.5,-369 331.5,-369 331.5,-341 264.5,-341"/>
+<text text-anchor="start" x="268.07" y="-350.8" font-family="Times,serif" font-size="14.00">INTEGER</text>
+<polygon fill="none" stroke="black" points="8.5,-313 8.5,-341 135.5,-341 135.5,-313 8.5,-313"/>
+<text text-anchor="start" x="12.31" y="-322.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="135.5,-313 135.5,-341 264.5,-341 264.5,-313 135.5,-313"/>
+<text text-anchor="start" x="141.5" y="-323.4" font-family="Times,serif" font-weight="bold" font-size="14.00">title</text>
+<text text-anchor="start" x="163.28" y="-323.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="264.5,-313 264.5,-341 331.5,-341 331.5,-313 264.5,-313"/>
+<text text-anchor="start" x="280.12" y="-322.8" font-family="Times,serif" font-size="14.00">TEXT</text>
+<polygon fill="none" stroke="black" points="8.5,-285 8.5,-313 135.5,-313 135.5,-285 8.5,-285"/>
+<text text-anchor="start" x="12.31" y="-294.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="135.5,-285 135.5,-313 264.5,-313 264.5,-285 135.5,-285"/>
+<text text-anchor="start" x="141.5" y="-295.4" font-family="Times,serif" font-weight="bold" font-size="14.00">likecount</text>
+<text text-anchor="start" x="193.6" y="-295.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="264.5,-285 264.5,-313 331.5,-313 331.5,-285 264.5,-285"/>
+<polygon fill="none" stroke="black" points="8.5,-257 8.5,-285 135.5,-285 135.5,-257 8.5,-257"/>
+<text text-anchor="start" x="12.31" y="-266.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="135.5,-257 135.5,-285 264.5,-285 264.5,-257 135.5,-257"/>
+<text text-anchor="start" x="141.09" y="-267.4" font-family="Times,serif" font-weight="bold" font-size="14.00">replycount</text>
+<text text-anchor="start" x="200.97" y="-267.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="264.5,-257 264.5,-285 331.5,-285 331.5,-257 264.5,-257"/>
+<polygon fill="none" stroke="black" points="8.5,-229 8.5,-257 135.5,-257 135.5,-229 8.5,-229"/>
+<text text-anchor="start" x="12.31" y="-238.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="135.5,-229 135.5,-257 264.5,-257 264.5,-229 135.5,-229"/>
+<text text-anchor="start" x="141.5" y="-239.4" font-family="Times,serif" font-weight="bold" font-size="14.00">ratio</text>
+<text text-anchor="start" x="167.16" y="-239.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="264.5,-229 264.5,-257 331.5,-257 331.5,-229 264.5,-229"/>
+</g>
+<!-- main_likes -->
+<g id="node3" class="node">
+<title>main_likes</title>
+<polygon fill="none" stroke="black" points="143,-507.63 143,-539.63 447,-539.63 447,-507.63 143,-507.63"/>
+<text text-anchor="start" x="160.12" y="-518.63" font-family="Times,serif" font-size="20.00">&#x1F4D8; main likes</text>
+<text text-anchor="start" x="368.44" y="-518.63" font-family="Times,serif" font-size="14.00"> &nbsp;</text>
+<polygon fill="none" stroke="black" points="143,-479.63 143,-507.63 270,-507.63 270,-479.63 143,-479.63"/>
+<text text-anchor="start" x="197.56" y="-489.43" font-family="Times,serif" font-size="14.00">PK</text>
+<polygon fill="none" stroke="black" points="270,-479.63 270,-507.63 380,-507.63 380,-479.63 270,-479.63"/>
+<text text-anchor="start" x="276" y="-490.03" font-family="Times,serif" font-weight="bold" font-size="14.00">postid</text>
+<text text-anchor="start" x="310.23" y="-490.03" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="380,-479.63 380,-507.63 447,-507.63 447,-479.63 380,-479.63"/>
+<text text-anchor="start" x="383.57" y="-489.43" font-family="Times,serif" font-size="14.00">INTEGER</text>
+<polygon fill="none" stroke="black" points="143,-451.63 143,-479.63 270,-479.63 270,-451.63 143,-451.63"/>
+<text text-anchor="start" x="197.56" y="-461.43" font-family="Times,serif" font-size="14.00">PK</text>
+<polygon fill="none" stroke="black" points="270,-451.63 270,-479.63 380,-479.63 380,-451.63 270,-451.63"/>
+<text text-anchor="start" x="276" y="-462.03" font-family="Times,serif" font-weight="bold" font-size="14.00">userid</text>
+<text text-anchor="start" x="310.21" y="-462.03" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="380,-451.63 380,-479.63 447,-479.63 447,-451.63 380,-451.63"/>
+<text text-anchor="start" x="383.57" y="-461.43" font-family="Times,serif" font-size="14.00">INTEGER</text>
+<polygon fill="none" stroke="black" points="143,-423.63 143,-451.63 270,-451.63 270,-423.63 143,-423.63"/>
+<text text-anchor="start" x="146.81" y="-433.43" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="270,-423.63 270,-451.63 380,-451.63 380,-423.63 270,-423.63"/>
+<text text-anchor="start" x="275.82" y="-434.03" font-family="Times,serif" font-weight="bold" font-size="14.00">created</text>
+<text text-anchor="start" x="316.23" y="-434.03" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="380,-423.63 380,-451.63 447,-451.63 447,-423.63 380,-423.63"/>
+<text text-anchor="start" x="389.4" y="-433.43" font-family="Times,serif" font-size="14.00">datetime</text>
+<polygon fill="none" stroke="black" points="143,-395.63 143,-423.63 270,-423.63 270,-395.63 143,-395.63"/>
+<text text-anchor="start" x="146.81" y="-405.43" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="lightpink" stroke="transparent" points="270,-395.63 270,-423.63 380,-423.63 380,-395.63 270,-395.63"/>
+<polygon fill="none" stroke="black" points="270,-395.63 270,-423.63 380,-423.63 380,-395.63 270,-395.63"/>
+<text text-anchor="start" x="275.82" y="-406.03" font-family="Times,serif" font-weight="bold" font-size="14.00">deleted</text>
+<text text-anchor="start" x="316.24" y="-406.03" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="380,-395.63 380,-423.63 447,-423.63 447,-395.63 380,-395.63"/>
+<text text-anchor="start" x="389.4" y="-405.43" font-family="Times,serif" font-size="14.00">datetime</text>
+</g>
+<!-- main_posts -->
+<g id="node4" class="node">
+<title>main_posts</title>
+<polygon fill="none" stroke="black" points="471,-565.81 471,-597.81 785,-597.81 785,-565.81 471,-565.81"/>
+<text text-anchor="start" x="491.45" y="-576.81" font-family="Times,serif" font-size="20.00">&#x1F4D8; main posts</text>
+<text text-anchor="start" x="703.11" y="-576.81" font-family="Times,serif" font-size="14.00"> &nbsp;</text>
+<polygon fill="none" stroke="black" points="471,-537.81 471,-565.81 598,-565.81 598,-537.81 471,-537.81"/>
+<text text-anchor="start" x="525.56" y="-547.61" font-family="Times,serif" font-size="14.00">PK</text>
+<polygon fill="none" stroke="black" points="598,-537.81 598,-565.81 718,-565.81 718,-537.81 598,-537.81"/>
+<text text-anchor="start" x="604" y="-548.21" font-family="Times,serif" font-weight="bold" font-size="14.00">postid</text>
+<text text-anchor="start" x="638.23" y="-548.21" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="718,-537.81 718,-565.81 785,-565.81 785,-537.81 718,-537.81"/>
+<text text-anchor="start" x="721.57" y="-547.61" font-family="Times,serif" font-size="14.00">INTEGER</text>
+<polygon fill="none" stroke="black" points="471,-509.81 471,-537.81 598,-537.81 598,-509.81 471,-509.81"/>
+<text text-anchor="start" x="474.81" y="-519.61" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="598,-509.81 598,-537.81 718,-537.81 718,-509.81 598,-509.81"/>
+<text text-anchor="start" x="604" y="-520.21" font-family="Times,serif" font-weight="bold" font-size="14.00">title</text>
+<text text-anchor="start" x="625.78" y="-520.21" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="718,-509.81 718,-537.81 785,-537.81 785,-509.81 718,-509.81"/>
+<text text-anchor="start" x="733.62" y="-519.61" font-family="Times,serif" font-size="14.00">TEXT</text>
+<polygon fill="none" stroke="black" points="471,-481.81 471,-509.81 598,-509.81 598,-481.81 471,-481.81"/>
+<text text-anchor="start" x="474.81" y="-491.61" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="598,-481.81 598,-509.81 718,-509.81 718,-481.81 598,-481.81"/>
+<text text-anchor="start" x="604" y="-492.21" font-family="Times,serif" font-weight="bold" font-size="14.00">body</text>
+<text text-anchor="start" x="632" y="-492.21" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="718,-481.81 718,-509.81 785,-509.81 785,-481.81 718,-481.81"/>
+<text text-anchor="start" x="733.62" y="-491.61" font-family="Times,serif" font-size="14.00">TEXT</text>
+<polygon fill="none" stroke="black" points="471,-453.81 471,-481.81 598,-481.81 598,-453.81 471,-453.81"/>
+<text text-anchor="start" x="474.81" y="-463.61" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="598,-453.81 598,-481.81 718,-481.81 718,-453.81 598,-453.81"/>
+<text text-anchor="start" x="604" y="-464.21" font-family="Times,serif" font-weight="bold" font-size="14.00">userid</text>
+<text text-anchor="start" x="638.21" y="-464.21" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="718,-453.81 718,-481.81 785,-481.81 785,-453.81 718,-453.81"/>
+<text text-anchor="start" x="721.57" y="-463.61" font-family="Times,serif" font-size="14.00">INTEGER</text>
+<polygon fill="none" stroke="black" points="471,-425.81 471,-453.81 598,-453.81 598,-425.81 471,-425.81"/>
+<text text-anchor="start" x="474.81" y="-435.61" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="598,-425.81 598,-453.81 718,-453.81 718,-425.81 598,-425.81"/>
+<text text-anchor="start" x="603.76" y="-436.21" font-family="Times,serif" font-weight="bold" font-size="14.00">inreplyto</text>
+<text text-anchor="start" x="654.3" y="-436.21" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="718,-425.81 718,-453.81 785,-453.81 785,-425.81 718,-425.81"/>
+<text text-anchor="start" x="721.57" y="-435.61" font-family="Times,serif" font-size="14.00">INTEGER</text>
+<polygon fill="none" stroke="black" points="471,-397.81 471,-425.81 598,-425.81 598,-397.81 471,-397.81"/>
+<text text-anchor="start" x="474.81" y="-407.61" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="598,-397.81 598,-425.81 718,-425.81 718,-397.81 598,-397.81"/>
+<text text-anchor="start" x="604" y="-408.21" font-family="Times,serif" font-weight="bold" font-size="14.00">created</text>
+<text text-anchor="start" x="644.41" y="-408.21" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="718,-397.81 718,-425.81 785,-425.81 785,-397.81 718,-397.81"/>
+<text text-anchor="start" x="727.4" y="-407.61" font-family="Times,serif" font-size="14.00">datetime</text>
+<polygon fill="none" stroke="black" points="471,-369.81 471,-397.81 598,-397.81 598,-369.81 471,-369.81"/>
+<text text-anchor="start" x="474.81" y="-379.61" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="598,-369.81 598,-397.81 718,-397.81 718,-369.81 598,-369.81"/>
+<text text-anchor="start" x="604" y="-380.21" font-family="Times,serif" font-weight="bold" font-size="14.00">updated</text>
+<text text-anchor="start" x="648.32" y="-380.21" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="718,-369.81 718,-397.81 785,-397.81 785,-369.81 718,-369.81"/>
+<text text-anchor="start" x="727.4" y="-379.61" font-family="Times,serif" font-size="14.00">datetime</text>
+<polygon fill="none" stroke="black" points="471,-341.81 471,-369.81 598,-369.81 598,-341.81 471,-341.81"/>
+<text text-anchor="start" x="474.81" y="-351.61" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="598,-341.81 598,-369.81 718,-369.81 718,-341.81 598,-341.81"/>
+<text text-anchor="start" x="604" y="-352.21" font-family="Times,serif" font-weight="bold" font-size="14.00">deleted</text>
+<text text-anchor="start" x="644.43" y="-352.21" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="718,-341.81 718,-369.81 785,-369.81 785,-341.81 718,-341.81"/>
+<text text-anchor="start" x="727.4" y="-351.61" font-family="Times,serif" font-size="14.00">datetime</text>
+</g>
+<!-- main_likes&#45;&gt;main_posts -->
+<g id="0" class="edge">
+<title>main_likes:e&#45;&gt;main_posts:w</title>
+<path fill="none" stroke="black" d="M447,-493.63C456.4,-527.16 458.23,-533.71 465.01,-543.59"/>
+<polygon fill="black" stroke="black" points="462.28,-545.79 471,-551.81 467.94,-541.67 462.28,-545.79"/>
+</g>
+<!-- main_users -->
+<g id="node5" class="node">
+<title>main_users</title>
+<polygon fill="none" stroke="black" points="304.75,-278 304.75,-310 622.75,-310 622.75,-278 304.75,-278"/>
+<text text-anchor="start" x="327.22" y="-289" font-family="Times,serif" font-size="20.00">&#x1F4D8; main users</text>
+<text text-anchor="start" x="538.85" y="-289" font-family="Times,serif" font-size="14.00"> &nbsp;</text>
+<polygon fill="none" stroke="black" points="304.75,-250 304.75,-278 431.75,-278 431.75,-250 304.75,-250"/>
+<text text-anchor="start" x="359.31" y="-259.8" font-family="Times,serif" font-size="14.00">PK</text>
+<polygon fill="none" stroke="black" points="431.75,-250 431.75,-278 555.75,-278 555.75,-250 431.75,-250"/>
+<text text-anchor="start" x="437.75" y="-260.4" font-family="Times,serif" font-weight="bold" font-size="14.00">userid</text>
+<text text-anchor="start" x="471.97" y="-260.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="555.75,-250 555.75,-278 622.75,-278 622.75,-250 555.75,-250"/>
+<text text-anchor="start" x="559.32" y="-259.8" font-family="Times,serif" font-size="14.00">INTEGER</text>
+<polygon fill="none" stroke="black" points="304.75,-222 304.75,-250 431.75,-250 431.75,-222 304.75,-222"/>
+<text text-anchor="start" x="308.56" y="-231.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="431.75,-222 431.75,-250 555.75,-250 555.75,-222 431.75,-222"/>
+<text text-anchor="start" x="437.75" y="-232.4" font-family="Times,serif" font-weight="bold" font-size="14.00">name</text>
+<text text-anchor="start" x="468.07" y="-232.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="555.75,-222 555.75,-250 622.75,-250 622.75,-222 555.75,-222"/>
+<text text-anchor="start" x="571.37" y="-231.8" font-family="Times,serif" font-size="14.00">TEXT</text>
+<polygon fill="none" stroke="black" points="304.75,-194 304.75,-222 431.75,-222 431.75,-194 304.75,-194"/>
+<text text-anchor="start" x="363.2" y="-203.8" font-family="Times,serif" font-size="14.00">U</text>
+<polygon fill="none" stroke="black" points="431.75,-194 431.75,-222 555.75,-222 555.75,-194 431.75,-194"/>
+<text text-anchor="start" x="437.75" y="-204.4" font-family="Times,serif" font-weight="bold" font-size="14.00">email</text>
+<text text-anchor="start" x="468.86" y="-204.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="555.75,-194 555.75,-222 622.75,-222 622.75,-194 555.75,-194"/>
+<text text-anchor="start" x="571.37" y="-203.8" font-family="Times,serif" font-size="14.00">TEXT</text>
+<polygon fill="none" stroke="black" points="304.75,-166 304.75,-194 431.75,-194 431.75,-166 304.75,-166"/>
+<text text-anchor="start" x="308.56" y="-175.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="431.75,-166 431.75,-194 555.75,-194 555.75,-166 431.75,-166"/>
+<text text-anchor="start" x="437.75" y="-176.4" font-family="Times,serif" font-weight="bold" font-size="14.00">password</text>
+<text text-anchor="start" x="490.63" y="-176.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="555.75,-166 555.75,-194 622.75,-194 622.75,-166 555.75,-166"/>
+<text text-anchor="start" x="571.37" y="-175.8" font-family="Times,serif" font-size="14.00">TEXT</text>
+<polygon fill="none" stroke="black" points="304.75,-138 304.75,-166 431.75,-166 431.75,-138 304.75,-138"/>
+<text text-anchor="start" x="308.56" y="-147.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="431.75,-138 431.75,-166 555.75,-166 555.75,-138 431.75,-138"/>
+<text text-anchor="start" x="437.75" y="-148.4" font-family="Times,serif" font-weight="bold" font-size="14.00">created</text>
+<text text-anchor="start" x="478.16" y="-148.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="555.75,-138 555.75,-166 622.75,-166 622.75,-138 555.75,-138"/>
+<text text-anchor="start" x="565.15" y="-147.8" font-family="Times,serif" font-size="14.00">datetime</text>
+<polygon fill="none" stroke="black" points="304.75,-110 304.75,-138 431.75,-138 431.75,-110 304.75,-110"/>
+<text text-anchor="start" x="308.56" y="-119.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="431.75,-110 431.75,-138 555.75,-138 555.75,-110 431.75,-110"/>
+<text text-anchor="start" x="437.75" y="-120.4" font-family="Times,serif" font-weight="bold" font-size="14.00">updated</text>
+<text text-anchor="start" x="482.07" y="-120.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="555.75,-110 555.75,-138 622.75,-138 622.75,-110 555.75,-110"/>
+<text text-anchor="start" x="565.15" y="-119.8" font-family="Times,serif" font-size="14.00">datetime</text>
+<polygon fill="none" stroke="black" points="304.75,-82 304.75,-110 431.75,-110 431.75,-82 304.75,-82"/>
+<text text-anchor="start" x="308.56" y="-91.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="none" stroke="black" points="431.75,-82 431.75,-110 555.75,-110 555.75,-82 431.75,-82"/>
+<text text-anchor="start" x="437.75" y="-92.4" font-family="Times,serif" font-weight="bold" font-size="14.00">deleted</text>
+<text text-anchor="start" x="478.18" y="-92.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="555.75,-82 555.75,-110 622.75,-110 622.75,-82 555.75,-82"/>
+<text text-anchor="start" x="565.15" y="-91.8" font-family="Times,serif" font-size="14.00">datetime</text>
+<polygon fill="none" stroke="black" points="304.75,-54 304.75,-82 431.75,-82 431.75,-54 304.75,-54"/>
+<text text-anchor="start" x="308.56" y="-63.8" font-family="Times,serif" font-size="14.00">&nbsp; &nbsp;</text>
+<polygon fill="lightgreen" stroke="transparent" points="431.75,-54 431.75,-82 555.75,-82 555.75,-54 431.75,-54"/>
+<polygon fill="none" stroke="black" points="431.75,-54 431.75,-82 555.75,-82 555.75,-54 431.75,-54"/>
+<text text-anchor="start" x="437.57" y="-64.4" font-family="Times,serif" font-weight="bold" font-size="14.00">nickname</text>
+<text text-anchor="start" x="492" y="-64.4" font-family="Times,serif" font-size="14.00">&nbsp;</text>
+<polygon fill="none" stroke="black" points="555.75,-54 555.75,-82 622.75,-82 622.75,-54 555.75,-54"/>
+<text text-anchor="start" x="571.37" y="-63.8" font-family="Times,serif" font-size="14.00">TEXT</text>
+</g>
+<!-- main_likes&#45;&gt;main_users -->
+<g id="1" class="edge">
+<title>main_likes:e&#45;&gt;main_users:w</title>
+<path fill="none" stroke="black" d="M447,-465.63C334.02,-387.04 330.82,-384.81 306.9,-273.97"/>
+<polygon fill="black" stroke="black" points="310.28,-273.04 304.75,-264 303.44,-274.51 310.28,-273.04"/>
+</g>
+<!-- main_posts&#45;&gt;main_posts -->
+<g id="3" class="edge">
+<title>main_posts:e&#45;&gt;main_posts:w</title>
+<path fill="none" stroke="black" d="M785,-439.81C811,-489.81 811,-619.81 628,-619.81 456.44,-619.81 445.71,-603.99 466.47,-560.81"/>
+<polygon fill="black" stroke="black" points="469.63,-562.32 471,-551.81 463.38,-559.17 469.63,-562.32"/>
+</g>
+<!-- main_posts&#45;&gt;main_users -->
+<g id="2" class="edge">
+<title>main_posts:e&#45;&gt;main_users:w</title>
+<path fill="none" stroke="black" d="M785,-467.81C639.76,-412.68 638.42,-412.17 313.96,-268.09"/>
+<polygon fill="black" stroke="black" points="315.31,-264.86 304.75,-264 312.47,-271.26 315.31,-264.86"/>
+</g>
+</g>
+</svg>
+</div></div><div class="block hidden" id="diffs"><div class="left block"> <h2>Stored Procedures</h2><select id="sprocChange"><option value="ALL" selected>ALL</option><option value="added">added</option><option value="removed">removed</option><option value="modified">modified</option></select><ul id="sprocList"></ul></div><div class="right block"><a class="show-code" href="#" onclick="javascript: code(&quot;all&quot;)">Show All</a><a class="show-code" href="#" onclick="javascript: code(&quot;removed&quot;)">Hide Removed</a><a class="show-code" href="#" onclick="javascript: code(&quot;added&quot;)">Hide Added</a></div><div class="right block" id="diff"></div></div></div></body></html>

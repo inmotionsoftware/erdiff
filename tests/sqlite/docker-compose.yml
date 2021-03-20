@@ -1,0 +1,14 @@
+version: '3.7'
+services:
+  previous:
+    image: sqlite:local
+    build: .
+    volumes:
+    - ./:/data
+    command: sqlite3 /data/previous.db -init /data/prev.sql
+  current:
+    image: sqlite:local
+    build: .
+    volumes:
+    - ./:/data
+    command: sqlite3 /data/current.db -init /data/cur.sql
