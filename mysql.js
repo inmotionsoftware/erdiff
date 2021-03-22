@@ -5,7 +5,8 @@ const createConnection = async (connectionString) => {
   try {
     connection = await mysql.createConnection(connectionString)
   } catch (err) {
-    this.error('uh oh! error connecting to mysql url', {exit: 2})
+    console.log('uh oh! error connecting to mysql url')
+    throw err
   } 
   return connection
 }
