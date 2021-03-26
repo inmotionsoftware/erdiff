@@ -1,6 +1,6 @@
 {
   "name": "erdiff",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Database Entity Relation Diagramming tool with diffing support for diagrams and stored procedures",
   "main": "index.js",
   "license": "MIT",
