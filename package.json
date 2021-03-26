@@ -4,6 +4,9 @@
   "description": "Database Entity Relation Diagramming tool with diffing support for diagrams and stored procedures",
   "main": "index.js",
   "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "bin": {
     "erdiff": "./index.js"
   },
@@ -21,7 +24,8 @@
     "mysql2": "^2.2.5",
     "node-graphviz": "^0.1.0",
     "pg": "^8.5.1",
-    "pug": "^3.0.0"
+    "pug": "^3.0.0",
+    "sqlite3": "^5.0.2"
   },
   "files": [
     "index.js",

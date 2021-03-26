@@ -117,7 +117,7 @@ exports.PostgresProcessor = {
         type: row.type,
         length: row.length,
         position: row.ordinal,
-        key: (row.unique ? 'U' : null),
+        key: (row.unique ? 'UNI' : null),
         pk: !!row.pk
       }
       if (row.ref_table) {
