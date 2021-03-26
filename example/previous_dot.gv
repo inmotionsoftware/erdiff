@@ -1,0 +1,83 @@
+digraph erd {
+  graph [
+    rankdir="LR"
+    splines="curved"
+    // pack=true
+    // concentrate=true
+    ratio="auto"
+    layout=neato;
+    // model="circuit";
+    // mode="sgd";
+    // overlap="vpsc"; //false, compress, ...
+    overlap="scalexy"; //false, compress, ...
+    // sep="+60";
+  ];
+  node [shape = plaintext];
+  legend [
+    shape = record;
+    penwidth = "6";
+    label=<<TABLE BGCOLOR="white" BORDER="0" CELLBORDER="1" CELLSPACING="0">
+        <TR><TD COLSPAN="2"><FONT POINT-SIZE="20">Legend</FONT></TD></TR>
+        <TR><TD>Z_Z #x1F52D;</TD><TD>VIEW</TD></TR>
+        <TR><TD>Z_Z #x1F4D8;</TD><TD>TABLE</TD></TR>
+        <TR><TD COLSPAN="2" BGCOLOR="lightgreen">Added column or table</TD></TR>
+        <TR><TD COLSPAN="2" BGCOLOR="lightpink">Removed column or table</TD></TR>
+        <TR><TD>PK</TD><TD>Primary key</TD></TR>
+        <TR><TD>U</TD><TD>Unique</TD></TR>
+      </TABLE>>;
+    pos="3645.0,4097.21!"
+  ];
+  database_likes [
+    label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3">
+      <TR><TD COLSPAN="3"><FONT POINT-SIZE="20">Z_Z #x1F4D8; database likes</FONT> Z_Z nbsp;</TD></TR>
+      <TR PORT="P0"><TD PORT="T0">PK</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>postid</B>Z_Z nbsp;</TD><TD PORT="H0">int(10)</TD></TR>
+      <TR PORT="P1"><TD PORT="T1">PK</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>userid</B>Z_Z nbsp;</TD><TD PORT="H1">int(10)</TD></TR>
+      <TR PORT="P2"><TD PORT="T2">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>created</B>Z_Z nbsp;</TD><TD PORT="H2">datetime</TD></TR>
+      <TR PORT="P3"><TD PORT="T3">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>deleted</B>Z_Z nbsp;</TD><TD PORT="H3">datetime</TD></TR>
+    </TABLE>>];
+  database_posts [
+    label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3">
+      <TR><TD COLSPAN="3"><FONT POINT-SIZE="20">Z_Z #x1F4D8; database posts</FONT> Z_Z nbsp;</TD></TR>
+      <TR PORT="P4"><TD PORT="T4">PK</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>postid</B>Z_Z nbsp;</TD><TD PORT="H4">int(10)</TD></TR>
+      <TR PORT="P5"><TD PORT="T5">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>title</B>Z_Z nbsp;</TD><TD PORT="H5">text</TD></TR>
+      <TR PORT="P6"><TD PORT="T6">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>body</B>Z_Z nbsp;</TD><TD PORT="H6">text</TD></TR>
+      <TR PORT="P7"><TD PORT="T7">PK</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>userid</B>Z_Z nbsp;</TD><TD PORT="H7">int(10)</TD></TR>
+      <TR PORT="P8"><TD PORT="T8">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>inreplyto</B>Z_Z nbsp;</TD><TD PORT="H8">int(10)</TD></TR>
+      <TR PORT="P9"><TD PORT="T9">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>created</B>Z_Z nbsp;</TD><TD PORT="H9">datetime</TD></TR>
+      <TR PORT="P10"><TD PORT="T10">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>updated</B>Z_Z nbsp;</TD><TD PORT="H10">datetime</TD></TR>
+      <TR PORT="P11"><TD PORT="T11">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>deleted</B>Z_Z nbsp;</TD><TD PORT="H11">datetime</TD></TR>
+    </TABLE>>];
+  database_users [
+    label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3">
+      <TR><TD COLSPAN="3"><FONT POINT-SIZE="20">Z_Z #x1F4D8; database users</FONT> Z_Z nbsp;</TD></TR>
+      <TR PORT="P12"><TD PORT="T12">PK</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>userid</B>Z_Z nbsp;</TD><TD PORT="H12">int(10)</TD></TR>
+      <TR PORT="P13"><TD PORT="T13">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>name</B>Z_Z nbsp;</TD><TD PORT="H13">text</TD></TR>
+      <TR PORT="P14"><TD PORT="T14">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>email</B>Z_Z nbsp;</TD><TD PORT="H14">text</TD></TR>
+      <TR PORT="P15"><TD PORT="T15">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>password</B>Z_Z nbsp;</TD><TD PORT="H15">text</TD></TR>
+      <TR PORT="P16"><TD PORT="T16">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>created</B>Z_Z nbsp;</TD><TD PORT="H16">datetime</TD></TR>
+      <TR PORT="P17"><TD PORT="T17">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>updated</B>Z_Z nbsp;</TD><TD PORT="H17">datetime</TD></TR>
+      <TR PORT="P18"><TD PORT="T18">Z_Z nbsp; Z_Z nbsp;</TD><TD CELLPADDING="5" ALIGN="LEFT" ><B>deleted</B>Z_Z nbsp;</TD><TD PORT="H18">datetime</TD></TR>
+    </TABLE>>];
+  database_likes:H0:e -> database_posts:T4:w [
+    id = 0
+    
+  ];
+  database_likes:H1:e -> database_users:T12:w [
+    id = 1
+    
+  ];
+  database_posts:H4:e -> database_posts:T4:w [
+    id = 2
+    
+  ];
+  database_posts:H7:e -> database_users:T12:w [
+    id = 3
+    
+  ];
+  database_users:H12:e -> database_users:T12:w [
+    id = 4
+    
+  ];
+
+  }
+  
