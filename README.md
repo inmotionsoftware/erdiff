@@ -1,5 +1,9 @@
 # ERDiff
 
+  generate Entity Relationship Diagram with differences
+
+## DESCRIPTION
+
 A Database diffing and diagramming tool.  Generate diffable snapshots of your schema or generate diffs between versions viewable in a browser.  Use it to compare environments before deploys or as part of your process(pull requests, CI, Deployments, etc).  The diffs include views and tables with relations plus stored procedures. There are a few ways to run the tool:
 
 * snapshot - save ERD + stored procedures as a single html file
@@ -19,7 +23,7 @@ The output in the [example](example/) directory includes the [html](example/exam
 
 ## INSTALL
 
-Install globally on your system with npm `sudo npm install -g erdiff` or yarn `sudo yarn add global erdiff`
+Install globally on your system with npm `sudo npm install -g erdiff` or yarn `sudo yarn global add erdiff`
 
 To use it in a project `npm install erdiff` or `yarn add erdiff`
 
@@ -27,7 +31,7 @@ To use it in a project `npm install erdiff` or `yarn add erdiff`
 
 Example diffing two postgres databases `staging-host` and `prod-host` 
 ```Shell
-$ erdiff -s public -c 'postgres://user@pass:staging-host:5432/database' -p 'postgres://user@pass:prod-host:5432/database' > output.html
+$ erdiff -s public -s otherschema -c 'postgres://user@pass:staging-host:5432/database' -p 'postgres://user@pass:prod-host:5432/database' > output.html
 ```
 
 Example of diffing the same database at different times, this could be done as part of a CI process
@@ -67,7 +71,7 @@ $ ../index.js -c current_schema.json -p previous_schema.json -q -d diff_dot.gv
 
   -q, --quiet              do not output svg to stdout
 
-  -s, --schema=schema      schema(s) to graph and optionally diff
+  -s, --schema=schema      schema(s) to graph and optionally diff, use multiple times to include more than one schema
 
   --help                   show CLI help
 
@@ -76,9 +80,6 @@ $ ../index.js -c current_schema.json -p previous_schema.json -q -d diff_dot.gv
   * `DB_CURRENT`               environment version of -c option
   * `DB_PREVIOUS`              environment version of -p option
   * `QUIET`                    environment version of -q option
-  * `DB_SCHEMA`                environment version of -s option,
+  * `DB_SCHEMA`                environment version of -s option, use comma seperated list to include more than one schema
   * `SAVE_SCHEMA`              environment version of -f option
-
-## DESCRIPTION
-  generate Entity Relationship Diagram with differences
 
