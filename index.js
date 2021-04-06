@@ -180,11 +180,12 @@ class ERD extends Command {
   static description = `generate Entity Relationship Diagram`
   async run() {
     const {flags} = this.parse(ERD)
-    const schema = flags.schema
+    var schema = flags.schema
     let currentErd
     let previousErd
+    const setSchema = (s) => schema = s 
     try {
-      currentErd = await getErd(flags.current, schema)
+      currentErd = await getErd(flags.current, schema, setSchema)
     } catch (err) {
       this.error('uh oh! error loading current schema', {exit: 3})
     }

@@ -71,7 +71,8 @@ $ ../index.js -c current_schema.json -p previous_schema.json -q -d diff_dot.gv
 
   -q, --quiet              do not output svg to stdout
 
-  -s, --schema=schema      schema(s) to graph and optionally diff, use multiple times to include more than one schema
+  -s, --schema=schema      schema(s) to graph and optionally diff, use multiple times to include more than one schema.
+                           if omitted schemas will be discovered and all schemas found will be included in output
 
   --help                   show CLI help
 

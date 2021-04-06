@@ -5,10 +5,13 @@ const createConnection = async (connectionString) => {
   try {
     connection = await mysql.createConnection(connectionString)
   } catch (err) {
-    console.log('uh oh! error connecting to mysql url')
     throw err
   } 
   return connection
+}
+
+const getAllSchemas = () => {
+  return `SELECT SCHEMA_NAME AS name FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('mysql','information_schema','performance_schema', 'sys');`
 }
 
 const getTableSchemas = (schema) => {
@@ -66,18 +69,30 @@ const getRoutineQuery = (sprocSchemas) => {
 }
 
 exports.MySqlProcessor = {
-  generateErd: async (connectionString, schema) => {
+  generateErd: async (connectionString, schema, setSchema) => {
     const connection = await createConnection(connectionString)
-
-    if (schema.length) {
+    let tableSchemas
+    let sprocSchemas
+    let s
+    if (schema && schema?.length) {
       tableSchemas = getTableSchemas(schema)
       sprocSchemas = getRoutineSchemas(schema)
+    } else {
+      const [schemas] = await connection.query(getAllSchemas())
+      s = schemas.map(i => i.name)
+      if (setSchema instanceof Function)
+        setSchema(s)
+      tableSchemas = getTableSchemas(s)
+      sprocSchemas = getRoutineSchemas(s)
     }
 
     const tablesQuery = getTableQuery(tableSchemas)
     const sprocQuery = getRoutineQuery(sprocSchemas)
     const [tableData] = await connection.query(tablesQuery)
     const [sprocData] = await connection.query(sprocQuery)
+    if (tableData.length == 0 && sprocData.length == 0) {
+      throw new Error ('no data found for schemas: ' + schema || s)
+    }
     const tables = {}
     const sprocs = {}
 
