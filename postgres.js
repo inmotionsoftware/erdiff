@@ -10,8 +10,12 @@ const createConnection = async (connectionString) => {
   return client
 }
 
+const getAllSchemas = () => {
+  return `SELECT SCHEMA_NAME AS name FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('pg_toast','information_schema','pg_catalog');`
+}
+
 const getTableSchemas = (schema) => {
-  return typeof schema == 'array' ? schema.map(s => `c.table_schema = '${s}'`).join(' OR ') : `c.table_schema = 'public'`
+  return schema ? schema.map(s => `c.table_schema = '${s}'`).join(' OR ') : `c.table_schema = 'public'`
 }
 
 const getRoutineSchemas = (schema) => {
@@ -60,8 +64,6 @@ SELECT
     fk.foreign_column_name as ref_column
   FROM information_schema.columns AS c
     LEFT JOIN information_schema.tables AS t ON (c.table_schema=t.table_schema AND c.table_name = t.table_name)
-
-    --LEFT JOIN information_schema.table_constraints AS uk ON (c.table_schema=uk.table_schema AND c.table_name = uk.table_name AND uk.constraint_type = 'UNIQUE')
     LEFT JOIN information_schema.table_constraints AS pk ON (c.table_schema=pk.table_schema AND c.table_name = pk.table_name AND pk.constraint_type = 'PRIMARY KEY')
     LEFT JOIN fk ON (c.table_schema=fk.table_schema AND c.table_name = fk.table_name AND c.column_name = fk.column_name)
   WHERE
@@ -90,10 +92,22 @@ SELECT
 
 
 exports.PostgresProcessor = {
-  generateErd: async (connectionString, schemas) => {
+  generateErd: async (connectionString, schemas, setSchema) => {
     const connection = await createConnection(connectionString)
-    tableSchemas = getTableSchemas(schemas)
-    sprocSchemas = getRoutineSchemas(schemas)
+    let tableSchemas
+    let sprocSchemas
+    let s
+    if (schemas && schemas?.length > 0) {
+      tableSchemas = getTableSchemas(schemas)
+      sprocSchemas = getRoutineSchemas(schemas)
+    } else {
+      const schema = await connection.query(getAllSchemas())
+      s = schema.rows.map(i => i.name)
+      if (setSchema instanceof Function)
+        setSchema(s)
+      tableSchemas = getTableSchemas(s)
+      sprocSchemas = getRoutineSchemas(s)
+    }
 
     const tablesQuery = getTableQuery(tableSchemas)
     const sprocQuery = getRoutineQuery(sprocSchemas)
@@ -101,6 +115,9 @@ exports.PostgresProcessor = {
     const {rows: sprocData} = await connection.query(sprocQuery)
     const tables = {}
     const sprocs = {}
+    if (tableData.length == 0 && sprocData.length == 0) {
+      throw new Error ('no data found for schemas: ' + schemas || s)
+    }
     tableData.forEach(row => {
       const name = `${row.schema}.${row.table}`
       if (!tables.hasOwnProperty(name)) {

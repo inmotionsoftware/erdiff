@@ -1,5 +1,7 @@
 #!/bin/bash
 
+rm current.db previous.db
+
 docker-compose up
 
 node ../../index.js -c sqlite://./current.db -p sqlite://./previous.db > test.html
